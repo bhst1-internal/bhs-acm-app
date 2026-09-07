@@ -294,6 +294,53 @@
     return { total: activeRecs.length, openCount: open.length, completedCount: completed.length, avgRes: resTimes.length ? (resTimes.reduce((a,b)=>a+b,0)/resTimes.length) : null, criticalPending: open.filter(r => r.urgency === 'veryCritical' || r.urgency === 'within24hrs').length, topCat, topCatCount, onTimeRate: ratedTotal ? Math.round((onTime/ratedTotal)*100) : null, catCounts };
   }
 
+  function applyTimelineFilters(chartInstance, containerId) {
+      if(!chartInstance) return;
+      const vD = chartInstance.isDatasetVisible(0);
+      const vP = chartInstance.isDatasetVisible(1);
+      const vO = chartInstance.isDatasetVisible(2);
+      
+      const mD = chartInstance.data._masterDone || [];
+      const mP = chartInstance.data._masterProg || [];
+      const mO = chartInstance.data._masterOpen || [];
+      const mL = chartInstance.data._masterLabels || [];
+      
+      const vL = mL.filter(lbl => 
+          (vD && mD.some(d => d.y === lbl)) || 
+          (vP && mP.some(d => d.y === lbl)) || 
+          (vO && mO.some(d => d.y === lbl))
+      );
+      
+      chartInstance.data.labels = vL;
+      chartInstance.data.datasets[0].data = vD ? mD.filter(d => vL.includes(d.y)) : [];
+      chartInstance.data.datasets[1].data = vP ? mP.filter(d => vL.includes(d.y)) : [];
+      chartInstance.data.datasets[2].data = vO ? mO.filter(d => vL.includes(d.y)) : [];
+      
+      const cContainer = document.getElementById(containerId);
+      if(cContainer) {
+          const availableHeight = cContainer.clientHeight;
+          const maxVisible = Math.max(1, Math.floor((availableHeight - 40) / 35));
+          chartInstance.options.scales.y.min = 0;
+          chartInstance.options.scales.y.max = Math.min(vL.length - 1, maxVisible - 1);
+      }
+      chartInstance.update();
+  }
+
+  function toggleLegend(idx, isVis) {
+      document.querySelectorAll(`.leg-chk[value="${idx}"]`).forEach(chk => {
+          chk.checked = isVis;
+          chk.parentElement.style.opacity = isVis ? '1' : '0.5';
+      });
+      if (timelineChart) {
+          timelineChart.setDatasetVisibility(idx, isVis);
+          applyTimelineFilters(timelineChart, 'timeline-scroll-container');
+      }
+      if (window.fullViewChart) {
+          window.fullViewChart.setDatasetVisibility(idx, isVis);
+          applyTimelineFilters(window.fullViewChart, 'fv-canvas-container');
+      }
+  }
+
   function updateDashboardUI() {
     const filtered = getFilteredDashboardRecords(), k = computeKPIs(filtered);
     const totalCompletionRate = k.total === 0 ? null : Math.round((k.completedCount / k.total) * 100);
@@ -308,16 +355,17 @@
     const gridEl = document.getElementById('dash-kpi-grid');
     if (gridEl) gridEl.innerHTML = kpiCards.map(c => `<div class="kpi-card" ${c.tooltip ? `data-tooltip="${c.tooltip}"` : ''}><div class="bar" style="background:${c.c}"></div><div class="kpi-label">${c.l}</div><div class="kpi-value">${c.v}</div><div class="kpi-sub">${c.s}</div>${c.p}</div>`).join('');
 
-    const rows = filtered.slice().sort((a,b)=>b.createdAt-a.createdAt).slice(0, 8).map(r => {
+    const rows = filtered.slice().sort((a,b)=>b.createdAt-a.createdAt).map(r => {
       const st = getStatus(r), urg = URGENCY[r.urgency] || '—';
-      let cList = [];
-      if(r.cat1) Object.keys(CATS).forEach(k => { if(r.cat1[k]) cList.push(CATS[k]); });
-      if(r.cat2) Object.keys(CATS2).forEach(k => { if(r.cat2[k]) cList.push(CATS2[k]); });
-      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${cList.length?cList.join(', '):'—'}</td><td>${urg}</td><td><span class="status-chip ${st==='done'?'chip-done':st==='progress'?'chip-progress':'chip-open'}">${st==='done'?'Completed':st==='progress'?'In progress':'Open'}</span></td></tr>`;
+      let catList = [];
+      if(r.cat1) Object.keys(CATS).forEach(k => { if(r.cat1[k]) catList.push(CATS[k]); });
+      let typeList = [];
+      if(r.cat2) Object.keys(CATS2).forEach(k => { if(r.cat2[k]) typeList.push(CATS2[k]); });
+      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td>${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td><span class="status-chip ${st==='done'?'chip-done':st==='progress'?'chip-progress':'chip-open'}">${st==='done'?'Completed':st==='progress'?'In progress':'Open'}</span></td></tr>`;
     }).join('');
     
     const tContainer = document.getElementById('dash-table-container');
-    if (tContainer) tContainer.innerHTML = filtered.length===0?`<div class="empty-state">No records found matching filters.</div>`:`<table class="list"><thead><tr><th>Report No.</th><th>Date</th><th>Title</th><th>Line/Equipment</th><th>Conveyor/Item</th><th>Category/Type</th><th>Urgency</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+    if (tContainer) tContainer.innerHTML = filtered.length===0?`<div class="empty-state">No records found matching filters.</div>`:`<table class="list"><thead><tr><th>Report No.</th><th>Date</th><th>Title</th><th>Line/Equipment</th><th>No.</th><th>Conveyor/Item</th><th>Category</th><th>Type</th><th>Urgency</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
 
     document.querySelectorAll('[data-act="open"]').forEach(btn => btn.addEventListener('click', () => { state.activeId = String(btn.getAttribute('data-id')); state.tab = 'input'; render(); }));
 
@@ -381,9 +429,15 @@
       });
       
       timelineChart.data._masterLabels = tlLabels; timelineChart.data._masterDone = dsDone; timelineChart.data._masterProg = dsProg; timelineChart.data._masterOpen = dsOpen;
-      const showDone = timelineChart.isDatasetVisible(0)!==false, showProg = timelineChart.isDatasetVisible(1)!==false, showOpen = timelineChart.isDatasetVisible(2)!==false, visibleLabels = tlLabels.filter(lbl => (showDone && dsDone.some(d=>d.y===lbl)) || (showProg && dsProg.some(d=>d.y===lbl)) || (showOpen && dsOpen.some(d=>d.y===lbl)));
-      timelineChart.data.labels = visibleLabels; 
-      timelineChart.data.datasets[0].data = showDone ? dsDone.filter(d => visibleLabels.includes(d.y)) : []; timelineChart.data.datasets[1].data = showProg ? dsProg.filter(d => visibleLabels.includes(d.y)) : []; timelineChart.data.datasets[2].data = showOpen ? dsOpen.filter(d => visibleLabels.includes(d.y)) : [];
+      
+      const isD = document.querySelector('#timeline-custom-legend .leg-chk[value="0"]')?.checked ?? true;
+      const isP = document.querySelector('#timeline-custom-legend .leg-chk[value="1"]')?.checked ?? true;
+      const isO = document.querySelector('#timeline-custom-legend .leg-chk[value="2"]')?.checked ?? true;
+      timelineChart.setDatasetVisibility(0, isD);
+      timelineChart.setDatasetVisibility(1, isP);
+      timelineChart.setDatasetVisibility(2, isO);
+      
+      applyTimelineFilters(timelineChart, 'timeline-scroll-container');
       
       const dMin = new Date(globalMinT); dMin.setHours(0,0,0,0);
       const dMax = new Date(globalMaxT); dMax.setHours(0,0,0,0); dMax.setDate(dMax.getDate() + 1);
@@ -393,22 +447,42 @@
       const tlEmpty = document.getElementById('timeline-empty-state');
       const tlContainer = document.getElementById('timeline-scroll-container');
       if (tlContainer && tlEmpty) { 
-        if (timelineFiltered.length === 0 || visibleLabels.length === 0) { 
+        if (timelineFiltered.length === 0 || timelineChart.data.labels.length === 0) { 
           tlEmpty.style.display = 'block'; tlContainer.style.display = 'none';
         } else { 
           tlEmpty.style.display = 'none'; tlContainer.style.display = 'block';
-          tlContainer.style.height = Math.max(345, visibleLabels.length * 35) + 'px'; 
           timelineChart.update(); 
+          if(window.enablePan) window.enablePan('acm-timeline-chart');
         } 
       }
     }
     if (categoryChart) {
-      let filteredCounts = Object.entries(k.catCounts);
+      let cat1CountsArr = [], cat2CountsArr = [];
       const selCatNames = Array.from(document.querySelectorAll('input[name="dash-cat"]:checked')).map(cb => CATS[cb.value] || CATS2[cb.value]).filter(Boolean);
-      if (selCatNames.length > 0) filteredCounts = filteredCounts.filter(x => selCatNames.includes(x[0]));
-      categoryChart.options.scales.x.ticks.display = true;
-      const sortedCats = filteredCounts.sort((a,b) => b[1] - a[1]);
-      categoryChart.data.labels = sortedCats.map(x => x[0]); categoryChart.data.datasets[0].data = sortedCats.map(x => x[1]); categoryChart.update();
+      
+      Object.entries(CATS).forEach(([k, name]) => {
+          let count = 0;
+          filtered.forEach(r => { if(r.cat1 && r.cat1[k]) count++; });
+          if(selCatNames.length === 0 || selCatNames.includes(name)) cat1CountsArr.push({name: name, count: count});
+      });
+      Object.entries(CATS2).forEach(([k, name]) => {
+          let count = 0;
+          filtered.forEach(r => { if(r.cat2 && r.cat2[k]) count++; });
+          if(selCatNames.length === 0 || selCatNames.includes(name)) cat2CountsArr.push({name: name, count: count});
+      });
+      
+      cat1CountsArr.sort((a,b) => b.count - a.count);
+      cat2CountsArr.sort((a,b) => b.count - a.count);
+      
+      const mergedLabels = [...cat1CountsArr.map(x => x.name), ...cat2CountsArr.map(x => x.name)];
+      const mergedData = [...cat1CountsArr.map(x => x.count), ...cat2CountsArr.map(x => x.count)];
+      
+      categoryChart.data.labels = mergedLabels;
+      categoryChart.data.datasets[0].data = mergedData;
+      categoryChart.data.datasets[0].backgroundColor = mergedLabels.map((_, i) => i < cat1CountsArr.length ? 'rgba(37, 99, 235, 0.45)' : 'rgba(16, 185, 129, 0.45)');
+      categoryChart.data.datasets[0].borderColor = mergedLabels.map((_, i) => i < cat1CountsArr.length ? 'rgba(37, 99, 235, 1)' : 'rgba(16, 185, 129, 1)');
+      categoryChart.options.plugins.verticalLine = { index: cat1CountsArr.length };
+      categoryChart.update();
     }
     if (urgencyChart) {
       const uCounts = { veryCritical: 0, within24hrs: 0, within1week: 0, within2months: 0 };
@@ -429,22 +503,155 @@
     }));
   }
 
-  function bindJPEGExport(btnId, fileName) {
+  function bindJPEGExport(btnId, fileName, targetId = null) {
     const btn = document.getElementById(btnId);
     if (!btn) return;
     btn.addEventListener('click', () => {
       if (typeof html2canvas === 'undefined') { alert("Export library is loading. Try again in a few seconds."); return; }
-      const panel = btn.closest('.panel');
-      const scrollWrap = panel.querySelector('.chart-wrap');
+      const panel = targetId ? document.getElementById(targetId) : btn.closest('.panel');
+      
+      const toolbar = panel.querySelector('.fv-toolbar-actions');
+      if (toolbar) toolbar.style.display = 'none';
+
       let oH = '', oO = '';
-      if(scrollWrap) { oH = scrollWrap.style.height; oO = scrollWrap.style.overflowY; scrollWrap.style.height = 'auto'; scrollWrap.style.overflowY = 'visible'; }
+      if(targetId) { 
+          oH = panel.style.height; oO = panel.style.overflowY; 
+          panel.style.height = 'auto'; panel.style.overflowY = 'visible'; 
+      } else {
+          const scrollWrap = panel.querySelector('.chart-wrap');
+          if(scrollWrap) { oH = scrollWrap.style.height; oO = scrollWrap.style.overflowY; scrollWrap.style.height = 'auto'; scrollWrap.style.overflowY = 'visible'; }
+      }
+
       const originalDisplay = btn.style.display; btn.style.display = 'none';
       html2canvas(panel, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
         btn.style.display = originalDisplay;
-        if(scrollWrap) { scrollWrap.style.height = oH; scrollWrap.style.overflowY = oO; }
+        if (toolbar) toolbar.style.display = 'flex';
+        
+        if(targetId) {
+            panel.style.height = oH; panel.style.overflowY = oO;
+        } else {
+            const scrollWrap = panel.querySelector('.chart-wrap');
+            if(scrollWrap) { scrollWrap.style.height = oH; scrollWrap.style.overflowY = oO; }
+        }
+        
         const link = document.createElement("a"); link.href = canvas.toDataURL('image/jpeg', 1.0); link.download = fileName; document.body.appendChild(link); link.click(); document.body.removeChild(link);
-      }).catch(err => { console.error(err); btn.style.display = originalDisplay; });
+      }).catch(err => { 
+        console.error(err); btn.style.display = originalDisplay; 
+        if (toolbar) toolbar.style.display = 'flex';
+      });
     });
+  }
+
+  function createTimelineChart(ctx) {
+      return new Chart(ctx, {
+          type: 'bar',
+          plugins: [{ 
+            id:'customCanvasBackgroundColor', 
+            beforeDraw:(chart, args, options)=>{ 
+                const ctx = chart.ctx; 
+                ctx.save(); 
+                ctx.fillStyle = options.color || '#ffffff'; 
+                ctx.fillRect(0,0,chart.width,chart.height); 
+                ctx.restore(); 
+            } 
+          }, {
+            id: 'slaOutline',
+            beforeDatasetsDraw(chart) {
+              const ctx = chart.ctx, xAxis = chart.scales.x;
+              const URG_COLORS = { veryCritical: '#dc2626', within24hrs: '#d97706', within1week: '#eab308', within2months: '#2563eb' };
+              const drawn = new Set();
+              ctx.save();
+              ctx.beginPath();
+              ctx.rect(chart.chartArea.left, chart.chartArea.top, chart.chartArea.width, chart.chartArea.height);
+              ctx.clip();
+
+              chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                if (meta.hidden) return;
+                meta.data.forEach((bar, index) => {
+                  const raw = dataset.data[index];
+                  if (!raw || !raw._r) return;
+                  const memoId = raw._r.createdAt;
+                  if (drawn.has(memoId)) return;
+                  drawn.add(memoId);
+                  const r = raw._r, t0 = raw._totalX[0], durMs = URGENCY_MS[r.urgency] || 0;
+                  if (durMs > 0) {
+                    const targetT = t0 + durMs, startX = xAxis.getPixelForValue(t0), endX = xAxis.getPixelForValue(targetT);
+                    const w = endX - startX, h = bar.height + 8, y = bar.y - h/2;
+                    ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.lineWidth = 1.5; ctx.strokeStyle = URG_COLORS[r.urgency] || '#9ca3af'; 
+                    if(ctx.roundRect) { ctx.roundRect(startX, y, w, h, 6); } else { ctx.rect(startX, y, w, h); }
+                    ctx.stroke();
+                  }
+                });
+              });
+              ctx.restore();
+            }
+          }, {
+            id: 'timelineShapes',
+            afterDatasetsDraw(chart) {
+              const ctx = chart.ctx;
+              ctx.save();
+              ctx.beginPath();
+              ctx.rect(chart.chartArea.left, chart.chartArea.top, chart.chartArea.width, chart.chartArea.height);
+              ctx.clip();
+
+              chart.data.datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                if (meta.hidden) return;
+                meta.data.forEach((bar, index) => {
+                  const raw = dataset.data[index];
+                  if (!raw || !raw._isOpenLine) return;
+                  const yCenter = bar.y, h = bar.height;
+                  const startX = chart.scales.x.getPixelForValue(raw._t0);
+                  const endX = chart.scales.x.getPixelForValue(raw._t1);
+                  ctx.beginPath(); ctx.moveTo(startX, yCenter); ctx.lineTo(endX, yCenter);
+                  ctx.lineWidth = 2; ctx.strokeStyle = '#9ca3af'; ctx.stroke();
+                  ctx.beginPath(); ctx.arc(startX, yCenter, Math.min(h / 3, 5), 0, 2 * Math.PI);
+                  ctx.fillStyle = '#9ca3af'; ctx.fill();
+                });
+              });
+              ctx.restore();
+            }
+          }],
+          data: { 
+              labels:[], 
+              datasets:[
+                  {label:'Completed', data:[], backgroundColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(5, 150, 105, 0.45)', borderColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(5, 150, 105, 1)', borderWidth:1, borderRadius:6, borderSkipped:false, barPercentage:0.45}, 
+                  {label:'In progress', data:[], backgroundColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(217, 119, 6, 0.45)', borderColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(217, 119, 6, 1)', borderWidth:1, borderRadius:6, borderSkipped:false, barPercentage:0.45}, 
+                  {label:'Open', data:[], backgroundColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(156, 163, 175, 0.45)', borderColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(156, 163, 175, 1)', borderWidth:1, borderRadius:6, borderSkipped:false, barPercentage:0.45}
+              ] 
+          },
+          options: {
+              indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+              layout: { padding: { top: 0, bottom: 0, left: 0, right: 0 } },
+              plugins: {
+                  customCanvasBackgroundColor: { color: '#ffffff' }, 
+                  legend: { display:false }, 
+                  tooltip: { backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:11}, padding:12, cornerRadius:8, callbacks:{ title: c => 'Report No: '+(c[0].raw._r.reportNo||'Draft'), label: c => { const r = c.raw._r, stWord = getStatus(r); let cL=[]; if(r.cat1)Object.keys(CATS).forEach(k=>{if(r.cat1[k])cL.push(CATS[k])}); if(r.cat2)Object.keys(CATS2).forEach(k=>{if(r.cat2[k])cL.push(CATS2[k])}); const t0 = c.raw._totalX[0], t1 = c.raw._totalX[1], targetT = t0 + (URGENCY_MS[r.urgency] || 0), formatOpt = {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:false}; const targetStr = URGENCY_MS[r.urgency] ? new Date(targetT).toLocaleDateString(undefined, formatOpt).replace(',', '') : '—'; let rS = '—'; if(r.actStartTime && r.actEndTime) { let sP = r.actStartTime.split(':'), eP = r.actEndTime.split(':'); if(sP.length>1 && eP.length>1) { let sM = parseInt(sP[0])*60+parseInt(sP[1]), eM = parseInt(eP[0])*60+parseInt(eP[1]); if(eM < sM) eM += 1440; let df = eM - sM; rS = String(Math.floor(df/60)).padStart(2,'0')+':'+String(df%60).padStart(2,'0'); } } return [`Date: ${fmtDate(r)}`, `Title: ${r.title||'—'}`, `Line/Equipment: ${r.lineEquipment||'—'}`, `No.: ${r.equipNo||'—'}`, `Conveyor/Item: ${r.conveyorItem||'—'}`, `Category/Type: ${cL.length?cL.join(', '):'—'}`, `Urgency: ${URGENCY[r.urgency]||'—'}`, `Status: ${stWord==='done'?'Completed':stWord==='progress'?'In progress':'Open'}`, ` `, `Rectification Time: ${rS}`, `Actual: ${new Date(t0).toLocaleDateString(undefined, formatOpt).replace(',', '')} to ${new Date(t1).toLocaleDateString(undefined, formatOpt).replace(',', '')} (${Math.max(0.1, (t1-t0)/86400000).toFixed(1)} Days)`, `Target (SLA): ${targetStr}`]; } } }
+              },
+              scales: { 
+                  x: { 
+                      position: 'top', 
+                      type:'linear', 
+                      ticks: {
+                          maxTicksLimit: 12, 
+                          callback:(v,i,t)=>{
+                              const d = new Date(v).toLocaleDateString(undefined, {month:'short', day:'numeric'}); 
+                              return (i>0 && d===new Date(t[i-1].value).toLocaleDateString(undefined, {month:'short', day:'numeric'}))?'':d;
+                          }, 
+                          maxRotation:0, 
+                          font:{size:10}
+                      } 
+                  }, 
+                  y: { 
+                      type:'category', 
+                      stacked:true, 
+                      title:{display:true, text:'Report No.', font:{size:12, weight:'bold'}}, 
+                      ticks:{font:{size:10.5}} 
+                  } 
+              }
+          }
+      });
   }
 
   function renderDashboard(container) {
@@ -455,12 +662,12 @@
     for (let l in EQUIP_DB) for (let n in EQUIP_DB[l]) { allLinesNos.push(l + '-' + n); allConveyors.add(EQUIP_DB[l][n]); }
     allConveyors.add('OTHERS'); allConveyors = Array.from(allConveyors).sort(); allLinesNos.sort();
 
-    container.innerHTML = `<div class="form-shell" style="margin-bottom:16px;padding:16px 20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0;font-size:.875rem;font-weight:800;color:var(--ink)">Global Filters &amp; Controls</h3><button class="btn btn-ghost" id="dash-reset-btn" style="padding:4px 10px;font-size:.75rem">Reset All Filters</button></div><div class="grid g4" id="dash-filters"><label class="f">Start Date<input type="date" id="dash-start" value="${defStart}"/></label><label class="f">End Date<input type="date" id="dash-end" value="${defEnd}"/></label><label class="f">Urgency<div class="dd-wrapper" id="dd-urgency-wrapper"><button type="button" class="dd-btn">All</button><div class="dd-menu">${Object.entries(URGENCY).map(([k,v])=>`<label class="chk"><input type="checkbox" name="dash-urgency" value="${k}"/> <span>${v}</span></label>`).join('')}</div></div></label><label class="f">Status<div class="dd-wrapper" id="dd-status-wrapper"><button type="button" class="dd-btn">All</button><div class="dd-menu"><label class="chk"><input type="checkbox" name="dash-status" value="open"/> <span>Open</span></label><label class="chk"><input type="checkbox" name="dash-status" value="progress"/> <span>In progress</span></label><label class="chk"><input type="checkbox" name="dash-status" value="done"/> <span>Completed</span></label></div></div></label><label class="f">Category/Type<div class="dd-wrapper" id="dd-cat-wrapper"><button type="button" class="dd-btn">All</button><div class="dd-menu"><div style="font-size:.65rem;font-weight:800;color:var(--text-sec)">Category</div>${Object.entries(CATS).map(([k,v])=>`<label class="chk"><input type="checkbox" name="dash-cat" value="${k}"/> <span>${v}</span></label>`).join('')}<div style="font-size:.65rem;font-weight:800;color:var(--text-sec);margin-top:4px">Type of Error</div>${Object.entries(CATS2).map(([k,v])=>`<label class="chk"><input type="checkbox" name="dash-cat" value="${k}"/> <span>${v}</span></label>`).join('')}</div></div></label><label class="f">Line/Equipment - No.<input type="text" id="dash-line" list="dl-lines" placeholder="e.g. BM1-04" autocomplete="off"/><datalist id="dl-lines">${allLinesNos.map(x=>`<option value="${x}"></option>`).join('')}</datalist></label><label class="f">Conveyor/Item<input type="text" id="dash-conveyor" list="dl-conv" placeholder="e.g. TRANSFER CONVEYOR" autocomplete="off"/><datalist id="dl-conv">${allConveyors.map(x=>`<option value="${x}"></option>`).join('')}</datalist></label></div></div><div class="kpi-grid" id="dash-kpi-grid"></div><div class="panel" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h3 style="margin:0">ACM Timeline</h3><button class="export-chart-btn" id="save-chart-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button></div><div class="hint">Gantt-style timeline showing submission to completion duration for filtered records.<br/><b>Note:</b> The dashed outline represents the target SLA timeframe based on Degree of Urgency. Scroll vertically to view all.</div><div style="background:transparent;padding:0;margin-top:0;position:relative"><div id="timeline-empty-state" style="display:none;text-align:center;padding-top:40px;color:var(--text-sec);font-size:12px;position:absolute;top:0;left:0;width:100%;height:100%;background:var(--paper);z-index:10">No memos found for the selected view.</div><div class="chart-wrap" style="height:345px;overflow-y:auto;overflow-x:hidden;position:relative"><div id="timeline-scroll-container" style="position:relative;width:100%;min-height:345px"><canvas id="acm-timeline-chart"></canvas></div></div></div></div>
+    container.innerHTML = `<div class="form-shell" style="margin-bottom:16px;padding:16px 20px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h3 style="margin:0;font-size:.875rem;font-weight:800;color:var(--ink)">Global Filters &amp; Controls</h3><button class="btn btn-ghost" id="dash-reset-btn" style="padding:4px 10px;font-size:.75rem">Reset All Filters</button></div><div class="grid g4" id="dash-filters"><label class="f">Start Date<input type="date" id="dash-start" value="${defStart}"/></label><label class="f">End Date<input type="date" id="dash-end" value="${defEnd}"/></label><label class="f">Urgency<div class="dd-wrapper" id="dd-urgency-wrapper"><button type="button" class="dd-btn">All</button><div class="dd-menu">${Object.entries(URGENCY).map(([k,v])=>`<label class="chk"><input type="checkbox" name="dash-urgency" value="${k}"/> <span>${v}</span></label>`).join('')}</div></div></label><label class="f">Status<div class="dd-wrapper" id="dd-status-wrapper"><button type="button" class="dd-btn">All</button><div class="dd-menu"><label class="chk"><input type="checkbox" name="dash-status" value="open"/> <span>Open</span></label><label class="chk"><input type="checkbox" name="dash-status" value="progress"/> <span>In progress</span></label><label class="chk"><input type="checkbox" name="dash-status" value="done"/> <span>Completed</span></label></div></div></label><label class="f">Category/Type<div class="dd-wrapper" id="dd-cat-wrapper"><button type="button" class="dd-btn">All</button><div class="dd-menu"><div style="font-size:.65rem;font-weight:800;color:var(--text-sec)">Category</div>${Object.entries(CATS).map(([k,v])=>`<label class="chk"><input type="checkbox" name="dash-cat" value="${k}"/> <span>${v}</span></label>`).join('')}<div style="font-size:.65rem;font-weight:800;color:var(--text-sec);margin-top:4px">Type of Error</div>${Object.entries(CATS2).map(([k,v])=>`<label class="chk"><input type="checkbox" name="dash-cat" value="${k}"/> <span>${v}</span></label>`).join('')}</div></div></label><label class="f">Line/Equipment - No.<input type="text" id="dash-line" list="dl-lines" placeholder="e.g. BM1-04" autocomplete="off"/><datalist id="dl-lines">${allLinesNos.map(x=>`<option value="${x}"></option>`).join('')}</datalist></label><label class="f">Conveyor/Item<input type="text" id="dash-conveyor" list="dl-conv" placeholder="e.g. TRANSFER CONVEYOR" autocomplete="off"/><datalist id="dl-conv">${allConveyors.map(x=>`<option value="${x}"></option>`).join('')}</datalist></label></div></div><div class="kpi-grid" id="dash-kpi-grid"></div><div class="panel" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><h3 style="margin:0">ACM Timeline</h3><div style="display:flex;gap:6px;"><button class="export-chart-btn" id="full-view-btn" title="Open Full Screen View" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>Full View</button><button class="export-chart-btn" id="save-chart-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button></div></div><div class="hint">Gantt-style timeline showing submission to completion duration for filtered records.<br/><b>Note:</b> Drag inside chart area to pan (up/down/left/right). Scroll mouse wheel to zoom. Double-click to reset view.</div><div id="timeline-custom-legend" style="display:flex; justify-content:flex-end; gap:16px; margin-bottom: 8px; font-size: 11px; padding-right:10px;"><label style="cursor:pointer; display:flex; align-items:center; gap:4px; opacity:1; transition:0.2s"><span style="display:inline-block; width:12px; height:12px; background:rgba(5, 150, 105, 0.45); border:1px solid rgba(5, 150, 105, 1); border-radius:50%"></span><input type="checkbox" checked class="leg-chk" value="0" style="display:none"> Completed</label><label style="cursor:pointer; display:flex; align-items:center; gap:4px; opacity:1; transition:0.2s"><span style="display:inline-block; width:12px; height:12px; background:rgba(217, 119, 6, 0.45); border:1px solid rgba(217, 119, 6, 1); border-radius:50%"></span><input type="checkbox" checked class="leg-chk" value="1" style="display:none"> In progress</label><label style="cursor:pointer; display:flex; align-items:center; gap:4px; opacity:1; transition:0.2s"><span style="display:inline-block; width:12px; height:12px; background:rgba(156, 163, 175, 0.45); border:1px solid rgba(156, 163, 175, 1); border-radius:50%"></span><input type="checkbox" checked class="leg-chk" value="2" style="display:none"> Open</label></div><div style="background:transparent;padding:0;margin-top:0;position:relative"><div id="timeline-empty-state" style="display:none;text-align:center;padding-top:40px;color:var(--text-sec);font-size:12px;position:absolute;top:0;left:0;width:100%;height:100%;background:var(--paper);z-index:10">No memos found for the selected view.</div><div class="chart-wrap" style="height:345px;overflow:hidden;position:relative;"><div id="timeline-scroll-container" style="position:relative;width:100%;height:345px;"><canvas id="acm-timeline-chart"></canvas></div></div></div></div>
     
     <div class="charts-grid">
       <div class="panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <h3 style="margin:0">Fault Category Overview</h3>
+          <h3 style="margin:0">Category &amp; Type Overview</h3>
           <button class="export-chart-btn" id="save-cat-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button>
         </div>
         <div class="hint">Frequency of faults by category and type across filtered records</div>
@@ -476,7 +683,34 @@
       </div>
     </div>
     
-    <div class="table-panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0;font-size:.875rem;font-weight:800">Recent Maintenance Memos</h3><button id="dash-export-btn" class="btn-export-excel" title="Export this table to Excel"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>Export</button></div><div id="dash-table-container"></div></div>`;
+    <div class="table-panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0;font-size:.875rem;font-weight:800">Recent Maintenance Memos</h3><button id="dash-export-btn" class="btn-export-excel" title="Export this table to Excel"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>Export</button></div><div id="dash-table-container"></div></div>
+    
+    <div id="full-view-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(17,24,39,0.85); z-index:999999; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
+      <div id="full-view-modal-content" style="background:var(--paper); width:96%; height:96%; border-radius:14px; display:flex; flex-direction:column; padding:20px; box-shadow:0 12px 32px rgba(0,0,0,0.3); overflow:hidden;">
+         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-shrink:0;">
+            <h3 style="margin:0; font-size:1.25rem; font-weight:800; color:var(--ink);">ACM Timeline - Full View</h3>
+            <div class="fv-toolbar-actions" style="display:flex; gap:8px;">
+                <button class="btn btn-primary" id="full-view-export-btn" style="background:var(--ok);">Save as JPEG</button>
+                <button class="btn btn-ghost" id="full-view-close-btn" style="background:var(--line);">Close</button>
+            </div>
+         </div>
+         <div class="hint" style="margin-top:-10px; margin-bottom:10px; flex-shrink:0;">Drag inside chart area to pan timeline. Scroll mouse wheel to zoom. Double-click to reset view.</div>
+         <div id="fv-legend" style="display:flex; justify-content:flex-end; gap:16px; margin-bottom:12px; font-size:11px; flex-shrink:0;">
+           <label style="cursor:pointer; display:flex; align-items:center; gap:4px; opacity:1; transition:0.2s"><span style="display:inline-block; width:12px; height:12px; background:rgba(5, 150, 105, 0.45); border:1px solid rgba(5, 150, 105, 1); border-radius:50%"></span><input type="checkbox" checked class="leg-chk" value="0" style="display:none"> Completed</label>
+           <label style="cursor:pointer; display:flex; align-items:center; gap:4px; opacity:1; transition:0.2s"><span style="display:inline-block; width:12px; height:12px; background:rgba(217, 119, 6, 0.45); border:1px solid rgba(217, 119, 6, 1); border-radius:50%"></span><input type="checkbox" checked class="leg-chk" value="1" style="display:none"> In progress</label>
+           <label style="cursor:pointer; display:flex; align-items:center; gap:4px; opacity:1; transition:0.2s"><span style="display:inline-block; width:12px; height:12px; background:rgba(156, 163, 175, 0.45); border:1px solid rgba(156, 163, 175, 1); border-radius:50%"></span><input type="checkbox" checked class="leg-chk" value="2" style="display:none"> Open</label>
+         </div>
+         <div style="flex:1; position:relative; padding:10px; border:1px solid var(--line); border-radius:8px; display:flex; flex-direction:column; overflow:hidden; min-height:400px;">
+            <div id="fv-canvas-container" style="position:relative; flex:1; width:100%; height:100%;">
+                <canvas id="acm-timeline-full-chart"></canvas>
+            </div>
+         </div>
+      </div>
+    </div>`;
+
+    document.querySelectorAll('.leg-chk').forEach(chk => {
+        chk.addEventListener('change', (e) => toggleLegend(parseInt(e.target.value), e.target.checked));
+    });
 
     setupDropdownFilters('dd-urgency-wrapper', 'All'); setupDropdownFilters('dd-status-wrapper', 'All'); setupDropdownFilters('dd-cat-wrapper', 'All');
     document.addEventListener('click', () => document.querySelectorAll('.dd-menu').forEach(m => m.classList.remove('open')));
@@ -493,97 +727,224 @@
     document.getElementById('dash-export-btn').addEventListener('click', () => {
       const filteredForExport = getFilteredDashboardRecords().sort((a,b)=>b.createdAt-a.createdAt);
       if(filteredForExport.length === 0) return showModal("Export Failed", "No records to export based on current filters.", "alert", true);
-      const csvRows = [['Report No.', 'Date', 'Title', 'Line/Equipment', 'Conveyor/Item', 'Category/Type', 'Urgency', 'Status']];
+      const csvRows = [['Report No.', 'Date', 'Title', 'Line/Equipment', 'No.', 'Conveyor/Item', 'Category', 'Type', 'Urgency', 'Status']];
       filteredForExport.forEach(r => {
         const st = getStatus(r), urg = URGENCY[r.urgency] || '';
-        let cList = []; if(r.cat1) Object.keys(CATS).forEach(k => { if(r.cat1[k]) cList.push(CATS[k]); }); if(r.cat2) Object.keys(CATS2).forEach(k => { if(r.cat2[k]) cList.push(CATS2[k]); });
-        csvRows.push([ `"${r.reportNo||''}"`, `"${fmtDate(r)}"`, `"${(r.title||'').replace(/"/g,'""')}"`, `"${r.lineEquipment||''}"`, `"${(r.conveyorItem||'').replace(/"/g,'""')}"`, `"${cList.join(', ')}"`, `"${urg}"`, `"${st==='done'?'Completed':st==='progress'?'In progress':'Open'}"` ]);
+        let catList = []; if(r.cat1) Object.keys(CATS).forEach(k => { if(r.cat1[k]) catList.push(CATS[k]); });
+        let typeList = []; if(r.cat2) Object.keys(CATS2).forEach(k => { if(r.cat2[k]) typeList.push(CATS2[k]); });
+        csvRows.push([ `"${r.reportNo||''}"`, `"${fmtDate(r)}"`, `"${(r.title||'').replace(/"/g,'""')}"`, `"${r.lineEquipment||''}"`, `"${r.equipNo||''}"`, `"${(r.conveyorItem||'').replace(/"/g,'""')}"`, `"${catList.join(', ')}"`, `"${typeList.join(', ')}"`, `"${urg}"`, `"${st==='done'?'Completed':st==='progress'?'In progress':'Open'}"` ]);
       });
       const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + csvRows.map(e=>e.join(",")).join("\n")], {type:'text/csv;charset=utf-8;'})); link.download = "Filtered_Maintenance_Memos.csv"; document.body.appendChild(link); link.click(); document.body.removeChild(link);
     });
 
+    document.getElementById('full-view-btn').addEventListener('click', () => {
+        document.getElementById('full-view-overlay').style.display = 'flex';
+        const fvCtx = document.getElementById('acm-timeline-full-chart');
+        if (window.fullViewChart) window.fullViewChart.destroy();
+        window.fullViewChart = createTimelineChart(fvCtx);
+        
+        window.fullViewChart.data._masterLabels = timelineChart.data._masterLabels;
+        window.fullViewChart.data._masterDone = timelineChart.data._masterDone;
+        window.fullViewChart.data._masterProg = timelineChart.data._masterProg;
+        window.fullViewChart.data._masterOpen = timelineChart.data._masterOpen;
+        
+        const isD = document.querySelector('#timeline-custom-legend .leg-chk[value="0"]')?.checked ?? true;
+        const isP = document.querySelector('#timeline-custom-legend .leg-chk[value="1"]')?.checked ?? true;
+        const isO = document.querySelector('#timeline-custom-legend .leg-chk[value="2"]')?.checked ?? true;
+        window.fullViewChart.setDatasetVisibility(0, isD);
+        window.fullViewChart.setDatasetVisibility(1, isP);
+        window.fullViewChart.setDatasetVisibility(2, isO);
+        
+        const sDate = document.getElementById('dash-start').value;
+        const eDate = document.getElementById('dash-end').value;
+        window.fullViewChart.options.scales.x.min = getTs(sDate);
+        window.fullViewChart.options.scales.x.max = getTs(eDate) + 86400000;
+        
+        applyTimelineFilters(window.fullViewChart, 'fv-canvas-container');
+        if(window.enablePan) window.enablePan('acm-timeline-full-chart');
+    });
+
+    document.getElementById('full-view-close-btn').addEventListener('click', () => { document.getElementById('full-view-overlay').style.display = 'none'; });
+
     bindJPEGExport('save-chart-btn', 'ACM_Timeline.jpg');
     bindJPEGExport('save-cat-btn', 'Fault_Category.jpg');
     bindJPEGExport('save-urg-btn', 'Urgency_Distribution.jpg');
+    bindJPEGExport('full-view-export-btn', 'ACM_Timeline_FullView.jpg', 'full-view-modal-content');
 
-    updateDashboardUI();
     ensureChartJs(() => {
       if(typeof Chart === 'undefined') { const errDiv = document.getElementById('timeline-scroll-container'); if(errDiv) errDiv.innerHTML = `<div style="text-align:center;padding-top:40px;color:#dc2626;font-weight:bold;font-size:14px;">Chart.js could not be loaded. Please check your network or firewall.</div>`; return; }
-      
+
+      window.enablePan = function(canvasId) {
+          const canvas = document.getElementById(canvasId);
+          if (!canvas || canvas.dataset.panEnabled) return;
+          canvas.dataset.panEnabled = "true";
+
+          let startX, startY, initXMin, initXMax, initYMin, initYMax;
+
+          canvas.addEventListener('pointerdown', e => {
+              const chartInstance = Chart.getChart(canvas);
+              if (!chartInstance) return;
+              canvas.setPointerCapture(e.pointerId);
+              startX = e.clientX;
+              startY = e.clientY;
+              initXMin = chartInstance.options.scales.x.min ?? chartInstance.scales.x.min;
+              initXMax = chartInstance.options.scales.x.max ?? chartInstance.scales.x.max;
+              initYMin = chartInstance.options.scales.y.min || 0;
+              initYMax = chartInstance.options.scales.y.max !== undefined ? chartInstance.options.scales.y.max : (chartInstance.data.labels.length - 1);
+              canvas.style.cursor = 'grabbing';
+              canvas.dataset.isDragging = "true";
+          });
+
+          canvas.addEventListener('pointermove', e => {
+              if (!canvas.hasPointerCapture(e.pointerId) || canvas.dataset.isDragging !== "true") return;
+              const chartInstance = Chart.getChart(canvas);
+              if (!chartInstance) return;
+              
+              const diffX = e.clientX - startX;
+              const diffY = e.clientY - startY;
+
+              const xAxis = chartInstance.scales.x;
+              const msPerPx = (initXMax - initXMin) / xAxis.width;
+              chartInstance.options.scales.x.min = initXMin - (diffX * msPerPx);
+              chartInstance.options.scales.x.max = initXMax - (diffX * msPerPx);
+
+              const yAxis = chartInstance.scales.y;
+              const labelsLen = chartInstance.data.labels.length;
+              if (labelsLen > 0) {
+                  const visibleCount = initYMax - initYMin + 1;
+                  const pxPerItem = yAxis.height / visibleCount;
+                  let shiftY = -Math.round(diffY / pxPerItem);
+                  
+                  let newMin = initYMin + shiftY;
+                  let newMax = initYMax + shiftY;
+                  
+                  if (newMin < 0) {
+                      newMax -= newMin;
+                      newMin = 0;
+                  }
+                  if (newMax >= labelsLen) {
+                      const excess = newMax - (labelsLen - 1);
+                      newMin -= excess;
+                      newMax = labelsLen - 1;
+                      if (newMin < 0) newMin = 0;
+                  }
+                  chartInstance.options.scales.y.min = newMin;
+                  chartInstance.options.scales.y.max = newMax;
+              }
+              chartInstance.update('none');
+          });
+
+          canvas.addEventListener('pointerup', e => {
+              canvas.releasePointerCapture(e.pointerId);
+              canvas.style.cursor = 'grab';
+              canvas.dataset.isDragging = "false";
+          });
+
+          canvas.addEventListener('wheel', e => {
+              e.preventDefault();
+              const chartInstance = Chart.getChart(canvas);
+              if (!chartInstance) return;
+
+              const zoomIntensity = 0.1;
+              const zoomDir = e.deltaY < 0 ? 1 : -1;
+              const xAxis = chartInstance.scales.x;
+              const yAxis = chartInstance.scales.y;
+              const rect = canvas.getBoundingClientRect();
+              const mouseX = e.clientX - rect.left;
+              const mouseY = e.clientY - rect.top;
+
+              let curXMin = chartInstance.options.scales.x.min ?? xAxis.min;
+              let curXMax = chartInstance.options.scales.x.max ?? xAxis.max;
+              const xRange = curXMax - curXMin;
+              const xRatio = Math.max(0, Math.min(1, (mouseX - xAxis.left) / xAxis.width));
+              const xDelta = xRange * zoomIntensity * zoomDir;
+              
+              chartInstance.options.scales.x.min = curXMin + xDelta * xRatio;
+              chartInstance.options.scales.x.max = curXMax - xDelta * (1 - xRatio);
+
+              const labelsLen = chartInstance.data.labels.length;
+              if (labelsLen > 0) {
+                  let curYMin = chartInstance.options.scales.y.min ?? 0;
+                  let curYMax = chartInstance.options.scales.y.max ?? (labelsLen - 1);
+                  const yRange = curYMax - curYMin;
+                  
+                  if (zoomDir === -1 && curYMin <= 0 && curYMax >= labelsLen - 1) {
+                  } else {
+                      const yRatio = Math.max(0, Math.min(1, (mouseY - yAxis.top) / yAxis.height));
+                      const yDelta = Math.max(1, yRange * zoomIntensity) * zoomDir;
+
+                      let newYMin = curYMin + yDelta * yRatio;
+                      let newYMax = curYMax - yDelta * (1 - yRatio);
+
+                      if (zoomDir === -1) {
+                          if (newYMin < 0) { newYMax -= newYMin; newYMin = 0; }
+                          if (newYMax >= labelsLen) { newYMin -= (newYMax - (labelsLen - 1)); newYMax = labelsLen - 1; if (newYMin < 0) newYMin = 0; }
+                      }
+
+                      if (newYMax - newYMin >= 1) { 
+                          chartInstance.options.scales.y.min = Math.max(0, Math.floor(newYMin));
+                          chartInstance.options.scales.y.max = Math.min(labelsLen - 1, Math.ceil(newYMax));
+                      }
+                  }
+              }
+              chartInstance.update('none');
+          }, { passive: false });
+
+          canvas.addEventListener('dblclick', () => {
+              if (canvasId === 'acm-timeline-chart') updateDashboardUI();
+              else document.getElementById('full-view-btn').click();
+          });
+          
+          canvas.style.cursor = 'grab';
+      };
+
       const customBgPlugin = { id:'customCanvasBackgroundColor', beforeDraw:(c, a, o)=>{ const ctx=c.ctx; ctx.save(); ctx.globalCompositeOperation='destination-over'; ctx.fillStyle=o.color||'#ffffff'; ctx.fillRect(0,0,c.width,c.height); ctx.restore(); } };
 
-      const timelineShapesPlugin = {
-        id: 'timelineShapes',
-        afterDatasetsDraw(chart) {
+      const verticalLinePlugin = {
+        id: 'verticalLine',
+        afterDraw: chart => {
+          const xIndex = chart.config.options.plugins?.verticalLine?.index;
+          if (xIndex === undefined || xIndex <= 0 || xIndex >= chart.data.labels.length) return;
           const ctx = chart.ctx;
-          chart.data.datasets.forEach((dataset, i) => {
-            const meta = chart.getDatasetMeta(i);
-            if (meta.hidden) return;
-            meta.data.forEach((bar, index) => {
-              const raw = dataset.data[index];
-              if (!raw || !raw._isOpenLine) return;
-              const yCenter = bar.y, h = bar.height;
-              const startX = chart.scales.x.getPixelForValue(raw._t0);
-              const endX = chart.scales.x.getPixelForValue(raw._t1);
-              ctx.save();
-              ctx.beginPath(); ctx.moveTo(startX, yCenter); ctx.lineTo(endX, yCenter);
-              ctx.lineWidth = 2; ctx.strokeStyle = '#9ca3af'; ctx.stroke();
-              ctx.beginPath(); ctx.arc(startX, yCenter, Math.min(h / 3, 5), 0, 2 * Math.PI);
-              ctx.fillStyle = '#9ca3af'; ctx.fill();
-              ctx.restore();
-            });
-          });
+          const xAxis = chart.scales.x;
+          const yAxis = chart.scales.y;
+          const leftTick = xAxis.getPixelForTick(xIndex - 1);
+          const rightTick = xAxis.getPixelForTick(xIndex);
+          if (leftTick === undefined || rightTick === undefined) return;
+          const xPos = (leftTick + rightTick) / 2;
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(xPos, yAxis.top);
+          ctx.lineTo(xPos, yAxis.bottom);
+          ctx.lineWidth = 2;
+          ctx.setLineDash([5, 5]);
+          ctx.strokeStyle = '#9ca3af';
+          ctx.stroke();
+          ctx.font = 'bold 11px sans-serif';
+          ctx.fillStyle = '#6b7280';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText('CATEGORY', (xAxis.left + xPos) / 2, yAxis.top + 5);
+          ctx.fillText('TYPE', (xPos + xAxis.right) / 2, yAxis.top + 5);
+          ctx.restore();
         }
       };
 
-      const slaOutlinePlugin = {
-        id: 'slaOutline',
-        beforeDatasetsDraw(chart) {
-          const ctx = chart.ctx, xAxis = chart.scales.x;
-          const URG_COLORS = { veryCritical: '#dc2626', within24hrs: '#d97706', within1week: '#eab308', within2months: '#2563eb' };
-          const drawn = new Set();
-          chart.data.datasets.forEach((dataset, i) => {
-            const meta = chart.getDatasetMeta(i);
-            if (meta.hidden) return;
-            meta.data.forEach((bar, index) => {
-              const raw = dataset.data[index];
-              if (!raw || !raw._r) return;
-              const memoId = raw._r.createdAt;
-              if (drawn.has(memoId)) return;
-              drawn.add(memoId);
-              const r = raw._r, t0 = raw._totalX[0], durMs = URGENCY_MS[r.urgency] || 0;
-              if (durMs > 0) {
-                const targetT = t0 + durMs, startX = xAxis.getPixelForValue(t0), endX = xAxis.getPixelForValue(targetT);
-                const w = endX - startX, h = bar.height + 8, y = bar.y - h/2;
-                ctx.save(); ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.lineWidth = 1.5; ctx.strokeStyle = URG_COLORS[r.urgency] || '#9ca3af'; 
-                if(ctx.roundRect) { ctx.roundRect(startX, y, w, h, 6); } else { ctx.rect(startX, y, w, h); }
-                ctx.stroke(); ctx.restore();
-              }
-            });
-          });
-        }
-      };
-
-      const tlCtx = document.getElementById('acm-timeline-chart'); if(!tlCtx) return;
-      if (timelineChart) timelineChart.destroy();
-      timelineChart = new Chart(tlCtx, {
-        type: 'bar', plugins: [customBgPlugin, slaOutlinePlugin, timelineShapesPlugin],
-        data: { labels:[], datasets:[{label:'Completed', data:[], backgroundColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(5, 150, 105, 0.45)', borderColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(5, 150, 105, 1)', borderWidth:1, borderRadius:6, borderSkipped:false, barPercentage:0.45}, {label:'In progress', data:[], backgroundColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(217, 119, 6, 0.45)', borderColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(217, 119, 6, 1)', borderWidth:1, borderRadius:6, borderSkipped:false, barPercentage:0.45}, {label:'Open', data:[], backgroundColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(156, 163, 175, 0.45)', borderColor: c => (c.raw && c.raw._isOpenLine) ? 'transparent' : 'rgba(156, 163, 175, 1)', borderWidth:1, borderRadius:6, borderSkipped:false, barPercentage:0.45}] },
-        options: {
-          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-          layout: { padding: { top: 0 } },
-          plugins: {
-            customCanvasBackgroundColor: { color: '#ffffff' }, legend: { display:true, position:'top', align:'end', labels:{usePointStyle:true, pointStyle:'circle', boxWidth:10, padding: 8, generateLabels: c => c.data.datasets.map((d,i)=>({text:d.label, fillStyle:['rgba(5,150,105,0.45)','rgba(217,119,6,0.45)','rgba(156,163,175,0.45)'][i], strokeStyle:['rgba(5,150,105,1)','rgba(217,119,6,1)','rgba(156,163,175,1)'][i], lineWidth:1, pointStyle:'circle', hidden:c.getDatasetMeta(i).hidden, datasetIndex:i})) }, onClick: (e, li, leg) => { const legIdx = li.datasetIndex, ci = leg.chart; ci.setDatasetVisibility(legIdx, !ci.isDatasetVisible(legIdx)); const vD = ci.isDatasetVisible(0)!==false, vP = ci.isDatasetVisible(1)!==false, vO = ci.isDatasetVisible(2)!==false, mD = ci.data._masterDone||[], mP = ci.data._masterProg||[], mO = ci.data._masterOpen||[], mL = ci.data._masterLabels||[]; const vL = mL.filter(lbl => (vD&&mD.some(d=>d.y===lbl))||(vP&&mP.some(d=>d.y===lbl))||(vO&&mO.some(d=>d.y===lbl))); ci.data.labels = vL; ci.data.datasets[0].data = vD?mD.filter(d=>vL.includes(d.y)):[]; ci.data.datasets[1].data = vP?mP.filter(d=>vL.includes(d.y)):[]; ci.data.datasets[2].data = vO?mO.filter(d=>vL.includes(d.y)):[]; const tlC = document.getElementById('timeline-scroll-container'); if(tlC) tlC.style.height = Math.max(345, vL.length*35)+'px'; ci.update(); } },
-            tooltip: { backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:11}, padding:12, cornerRadius:8, callbacks:{ title: c => 'Report No: '+(c[0].raw._r.reportNo||'Draft'), label: c => { const r = c.raw._r, stWord = getStatus(r); let cL=[]; if(r.cat1)Object.keys(CATS).forEach(k=>{if(r.cat1[k])cL.push(CATS[k])}); if(r.cat2)Object.keys(CATS2).forEach(k=>{if(r.cat2[k])cL.push(CATS2[k])}); const t0 = c.raw._totalX[0], t1 = c.raw._totalX[1], targetT = t0 + (URGENCY_MS[r.urgency] || 0), formatOpt = {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit', hour12:false}; const targetStr = URGENCY_MS[r.urgency] ? new Date(targetT).toLocaleDateString(undefined, formatOpt).replace(',', '') : '—'; let rS = '—'; if(r.actStartTime && r.actEndTime) { let sP = r.actStartTime.split(':'), eP = r.actEndTime.split(':'); if(sP.length>1 && eP.length>1) { let sM = parseInt(sP[0])*60+parseInt(sP[1]), eM = parseInt(eP[0])*60+parseInt(eP[1]); if(eM < sM) eM += 1440; let df = eM - sM; rS = String(Math.floor(df/60)).padStart(2,'0')+':'+String(df%60).padStart(2,'0'); } } return [`Date: ${fmtDate(r)}`, `Title: ${r.title||'—'}`, `Line/Equipment: ${r.lineEquipment||'—'}`, `Conveyor/Item: ${r.conveyorItem||'—'}`, `Category/Type: ${cL.length?cL.join(', '):'—'}`, `Urgency: ${URGENCY[r.urgency]||'—'}`, `Status: ${stWord==='done'?'Completed':stWord==='progress'?'In progress':'Open'}`, ` `, `Rectification Time: ${rS}`, `Actual: ${new Date(t0).toLocaleDateString(undefined, formatOpt).replace(',', '')} to ${new Date(t1).toLocaleDateString(undefined, formatOpt).replace(',', '')} (${Math.max(0.1, (t1-t0)/86400000).toFixed(1)} Days)`, `Target (SLA): ${targetStr}`]; } } }
-          },
-          scales: { x: { type:'linear', ticks:{stepSize:86400000, callback:(v,i,t)=>{const d = new Date(v).toLocaleDateString(undefined, {month:'short', day:'numeric'}); return (i>0 && d===new Date(t[i-1].value).toLocaleDateString(undefined, {month:'short', day:'numeric'}))?'':d;}, maxRotation:0, font:{size:10}} }, y: { type:'category', stacked:true, title:{display:true, text:'Report No.', font:{size:12, weight:'bold'}}, ticks:{font:{size:10.5}} } }
-        }
-      });
+      const tlCtx = document.getElementById('acm-timeline-chart'); 
+      if(tlCtx) {
+          if (timelineChart) timelineChart.destroy();
+          timelineChart = createTimelineChart(tlCtx);
+      }
       
       const catCtx = document.getElementById('acm-category-chart');
       if (catCtx) {
         if(categoryChart) categoryChart.destroy();
-        categoryChart = new Chart(catCtx, { type: 'bar', plugins:[customBgPlugin], data: { labels:[], datasets:[{label:'Occurrences', data:[], backgroundColor:'rgba(37, 99, 235, 0.45)', borderColor:'rgba(37, 99, 235, 1)', borderWidth:1, borderRadius:4}] }, options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8}}, scales:{y:{beginAtZero:true, title:{display:true, text:'Total Memo', font:{size:12, weight:'bold'}}, ticks:{stepSize:1, font:{size:10}}}, x:{ticks:{font:{size:10}, maxRotation:0, minRotation:0, display:true}}} } });
+        categoryChart = new Chart(catCtx, { 
+          type: 'bar', 
+          plugins:[customBgPlugin, verticalLinePlugin], 
+          data: { labels:[], datasets:[{label:'Occurrences', data:[], backgroundColor:[], borderColor:[], borderWidth:1, borderRadius:4}] }, 
+          options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8}}, scales:{y:{beginAtZero:true, title:{display:true, text:'Total Memo', font:{size:12, weight:'bold'}}, ticks:{stepSize:1, font:{size:10}}}, x:{ticks:{font:{size:10}, maxRotation:0, minRotation:0, display:true}}} } 
+        });
       }
 
       const centerTextPlugin = {
@@ -611,7 +972,26 @@
         }
       };
 
-      const sliceLabelsPlugin = { id:'sliceLabels', afterDatasetsDraw: c => { if(c.config.type!=='doughnut') return; const ctx=c.ctx, ds=c.data.datasets[0], tot=ds.data.reduce((a,b)=>a+b,0); if(!tot) return; c.getDatasetMeta(0).data.forEach((sec,i) => { if(!ds.data[i]) return; const pos=sec.tooltipPosition(); ctx.fillStyle='#fff'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.shadowColor='rgba(0,0,0,0.6)'; ctx.shadowBlur=4; ctx.fillText(Math.round((ds.data[i]/tot)*100)+'%', pos.x, pos.y); ctx.shadowBlur=0; }); } };
+      const sliceLabelsPlugin = { 
+        id:'sliceLabels', 
+        afterDatasetsDraw: c => { 
+          if(c.config.type!=='doughnut') return; 
+          const ctx=c.ctx, ds=c.data.datasets[0], tot=ds.data.reduce((a,b)=>a+b,0); 
+          if(!tot) return; 
+          c.getDatasetMeta(0).data.forEach((sec,i) => { 
+            if(!ds.data[i]) return; 
+            const pos=sec.tooltipPosition(); 
+            ctx.fillStyle='#374151'; 
+            ctx.font='bold 13px sans-serif'; 
+            ctx.textAlign='center'; 
+            ctx.textBaseline='middle'; 
+            ctx.shadowColor='rgba(255,255,255,0.85)'; 
+            ctx.shadowBlur=4; 
+            ctx.fillText(Math.round((ds.data[i]/tot)*100)+'%', pos.x, pos.y); 
+            ctx.shadowBlur=0; 
+          }); 
+        } 
+      };
 
       const urgCtx = document.getElementById('acm-urgency-chart');
       if (urgCtx) {
@@ -637,7 +1017,7 @@
     ['happeningDate', 'issuedBy', 'reportNo', 'maintenanceType', 'timeOfHappening', 'title', 'conveyorItem', 'lineEquipment', 'equipNo'].forEach(k => { if(!checkReq(r[k])) container.querySelector(`[data-path="${k}"]`)?.classList.add('err-highlight'); });
     if((r.reasonDetail||'').trim().split(/\s+/).filter(w=>w.length>0).length < 2) container.querySelector('[data-path="reasonDetail"]')?.classList.add('err-highlight');
     let igBase = r.issuedGroup || ''; if(!igBase || (igBase.toUpperCase().startsWith('VENDOR') && igBase.trim().toUpperCase()==='VENDOR')) container.querySelectorAll('[data-calc-group="issuedGroup"]').forEach(el=>el.classList.add('err-highlight'));
-    if(!(r.cat1 && Object.keys(CATS).some(k=>r.cat1[k])) && !(r.cat2 && Object.keys(CATS2).some(k=>r.cat2[k]))) container.querySelector('#sec-category')?.classList.add('err-sec');
+    if(!(r.cat1 && Object.keys(CATS).some(k=>r.cat1[k])) || !(r.cat2 && Object.keys(CATS2).some(k=>r.cat2[k]))) container.querySelector('#sec-category')?.classList.add('err-sec');
     if(!r.urgency) container.querySelector('#sec-urgency')?.classList.add('err-sec');
   }
 
@@ -683,7 +1063,7 @@
       if(!checkReq(r.maintenanceType)) errs.push("[Notification & Work Order] Maintenance Type");
       if(!checkReq(r.timeOfHappening)) errs.push("[Notification & Work Order] Time of Happening");
       if(!checkReq(r.title) || !checkReq(r.conveyorItem) || !checkReq(r.lineEquipment) || !checkReq(r.equipNo)) errs.push("[Title & Equipment] All details are required");
-      if(!(r.cat1 && Object.keys(CATS).some(k=>r.cat1[k])) && !(r.cat2 && Object.keys(CATS2).some(k=>r.cat2[k]))) errs.push("[Category & Type of Error] Select at least one category and one type");
+      if(!(r.cat1 && Object.keys(CATS).some(k=>r.cat1[k])) || !(r.cat2 && Object.keys(CATS2).some(k=>r.cat2[k]))) errs.push("[Category & Type of Error] Select at least one category and one type");
       if(!r.urgency) errs.push("[Degree of Urgency] Please select one");
       if((r.reasonDetail||'').trim().split(/\s+/).filter(w=>w.length>0).length < 2) errs.push("[Reason / Detail] Please write at least 2 words");
       updateHighlights(container, r);
