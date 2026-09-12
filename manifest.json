@@ -1,5 +1,5 @@
 {
-  "name": "BHS ACM Dashboard",
+  "name": "BHS Maintenance Dashboard - ACM ",
   "short_name": "BHS ACM",
   "start_url": "./index.html",
   "display": "standalone",
