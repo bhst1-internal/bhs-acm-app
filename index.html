@@ -184,9 +184,6 @@
     return { createdAt: Date.now(), isDraft: true, status: '', notificationNo: '', workOrderNo: '', maintenanceType: '', reportNo: '', happeningDate: '', timeOfHappening:'', dd:'', mm:'', yy:'', issuedBy:'', issuedGroup:'', checkedBy:'', title:'', conveyorItem:'', lineEquipment:'', equipNo:'', cat1: {}, cat2: {}, urgency:'', reasonDetail:'', monitoring: [ {d1:'',b1:'',r1:'',d2:'',b2:'',r2:''} ], spStock:'', spStockQty:'', spStockCritical:'', spCheckedBy:'', spQty:'', spLocation:'', spCheckBy:'', spRequestDate:'', spDeliveryDate:'', spLocation2:'', requestOfAction:'', actionDate: '', actDoneBy:'', actGroup:'', actStartTime:'', actEndTime:'', actDd:'', actMm:'', actYy:'', actionCat:'', actionDetail:'', history: [ {date:'',remark:''}, {date:'',remark:''}, {date:'',remark:''} ], resultCat:'', paramSpeed:'', paramTemp:'', paramCurrent:'', paramVoltage:'', resultDetail:'', parts: Array.from({length:9}, () => ({ item:'', spec:'', part:'', qty:'', dismantle:'', sap:'' })), flags: { createNotification:false, createWorkOrder:false, releaseWorkOrder:false, gmps:false, timeConfirmation:false, teco:false, businessCompletion:false }, doneByName:'', checkByName:'', confirmedByName:'' };
   }
 
-// Add the display limit variable here
-  let memoDisplayLimit = 10;
-  
   let state = { tab: 'dashboard', records: [], activeId: null, cleanActiveRecord: null, isDirty: false, loaded: false, showErrors: false };
   const checkReq = v => v != null && String(v).trim() !== '';
 
@@ -358,70 +355,18 @@
     const gridEl = document.getElementById('dash-kpi-grid');
     if (gridEl) gridEl.innerHTML = kpiCards.map(c => `<div class="kpi-card" ${c.tooltip ? `data-tooltip="${c.tooltip}"` : ''}><div class="bar" style="background:${c.c}"></div><div class="kpi-label">${c.l}</div><div class="kpi-value">${c.v}</div><div class="kpi-sub">${c.s}</div>${c.p}</div>`).join('');
 
-const sortedFiltered = filtered.slice().sort((a,b)=>b.createdAt-a.createdAt);
-    const visibleRecords = sortedFiltered.slice(0, memoDisplayLimit);
-    
-    const rows = visibleRecords.map(r => {
+    const rows = filtered.slice().sort((a,b)=>b.createdAt-a.createdAt).map(r => {
       const st = getStatus(r), urg = URGENCY[r.urgency] || '—';
       let catList = [];
       if(r.cat1) Object.keys(CATS).forEach(k => { if(r.cat1[k]) catList.push(CATS[k]); });
       let typeList = [];
       if(r.cat2) Object.keys(CATS2).forEach(k => { if(r.cat2[k]) typeList.push(CATS2[k]); });
-      
-      // Determine Date Completed (from Action Date)
-      let dateCompleted = '—';
-      if (r.actionDate) {
-        const p = String(r.actionDate).substring(0, 10).split('-');
-        if (p.length === 3) dateCompleted = `${p[2]}/${p[1]}/${p[0].slice(-2)}`;
-      } else if (r.actDd && r.actMm && r.actYy) {
-        dateCompleted = `${r.actDd.padStart(2,'0')}/${r.actMm.padStart(2,'0')}/${r.actYy}`;
-      }
-
-      // Determine Pending Items for Tooltip
-      let pendingItems = [];
-      if (st === 'progress') {
-        const wordCount = str => (str || '').trim().split(/\s+/).filter(w => w.length > 0).length;
-        let agBase = r.actGroup || ''; 
-        let actGroupValid = agBase.toUpperCase().startsWith('VENDOR') ? agBase.substring(6).replace(/^:\s*/, '').trim().length > 0 : agBase.trim() !== '';
-        
-        if (!(checkReq(r.actionDate) || (checkReq(r.actDd) && checkReq(r.actMm) && checkReq(r.actYy)))) pendingItems.push("Action Date");
-        if (!checkReq(r.actDoneBy)) pendingItems.push("Action Done By");
-        if (!actGroupValid) pendingItems.push("Action Group");
-        if (!checkReq(r.actStartTime)) pendingItems.push("Start Time");
-        if (!checkReq(r.actEndTime)) pendingItems.push("End Time");
-        if (!checkReq(r.actionCat)) pendingItems.push("Action Category");
-        if (wordCount(r.actionDetail) < 2) pendingItems.push("Action Detail (Min 2 words)");
-        if (!checkReq(r.resultCat)) pendingItems.push("Result Category");
-        if (wordCount(r.resultDetail) < 2) pendingItems.push("Result Detail (Min 2 words)");
-        
-        const f = r.flags || {};
-        if (!(f.createNotification || f.createWorkOrder || f.releaseWorkOrder || f.gmps || f.timeConfirmation || f.teco || f.businessCompletion)) pendingItems.push("Completion Checklist");
-        
-        if ((r.doneByName || '').trim().length < 3) pendingItems.push("Sign-off: Done By (TECH)");
-        if ((r.checkByName || '').trim().length < 3) pendingItems.push("Sign-off: Check By (TO/SP)");
-        if (!checkReq(r.confirmedByName)) pendingItems.push("Sign-off: Confirmed By (TE/E/SE)");
-      }
-      
-      const tooltipAttr = st === 'progress' && pendingItems.length > 0 ? `data-tooltip="Pending: ${pendingItems.join(', ')}"` : '';
-
-      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td>${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td class="mono-font">${dateCompleted}</td><td><span ${tooltipAttr} class="status-chip ${st==='done'?'chip-done':st==='progress'?'chip-progress':'chip-open'}">${st==='done'?'Completed':st==='progress'?'In progress':'Open'}</span></td></tr>`;
+      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td>${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td><span class="status-chip ${st==='done'?'chip-done':st==='progress'?'chip-progress':'chip-open'}">${st==='done'?'Completed':st==='progress'?'In progress':'Open'}</span></td></tr>`;
     }).join('');
     
-    const loadMoreBtn = sortedFiltered.length > memoDisplayLimit ? `<div style="text-align:center; margin-top: 10px;"><button id="load-more-memos-btn" class="btn btn-ghost">Load Next 10 Memos</button></div>` : '';
-    
     const tContainer = document.getElementById('dash-table-container');
-    if (tContainer) {
-      tContainer.innerHTML = filtered.length===0 ? `<div class="empty-state">No records found matching filters.</div>` : `<table class="list"><thead><tr><th>Report No.</th><th>Date Issued</th><th>Title</th><th>Line/Equipment</th><th>No.</th><th>Conveyor/Item</th><th>Category</th><th>Type</th><th>Urgency</th><th>Date Completed</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>${loadMoreBtn}`;
-      
-      const loadMoreEl = document.getElementById('load-more-memos-btn');
-      if(loadMoreEl) {
-        loadMoreEl.addEventListener('click', () => {
-          memoDisplayLimit += 10;
-          updateDashboardUI();
-        });
-      }
-    }
-	
+    if (tContainer) tContainer.innerHTML = filtered.length===0?`<div class="empty-state">No records found matching filters.</div>`:`<table class="list"><thead><tr><th>Report No.</th><th>Date</th><th>Title</th><th>Line/Equipment</th><th>No.</th><th>Conveyor/Item</th><th>Category</th><th>Type</th><th>Urgency</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+
     document.querySelectorAll('[data-act="open"]').forEach(btn => btn.addEventListener('click', () => { state.activeId = String(btn.getAttribute('data-id')); state.tab = 'input'; render(); }));
 
     if (timelineChart) {
@@ -711,10 +656,8 @@ const sortedFiltered = filtered.slice().sort((a,b)=>b.createdAt-a.createdAt);
 
   function renderDashboard(container) {
     const toIsoStr = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    const today = new Date();
-	const thirtyDaysAgo = new Date();
-	thirtyDaysAgo.setDate(today.getDate() - 30);
-	const defStart = toIsoStr(thirtyDaysAgo), defEnd = toIsoStr(today);
+    let absoluteMinTs = Date.now(); state.records.filter(r => !r.isDraft).forEach(r => { let t = getTs(r.happeningDate) || getOldTs(r.dd, r.mm, r.yy); if(t && t < absoluteMinTs) absoluteMinTs = t; });
+    const defStart = toIsoStr(new Date(absoluteMinTs)), defEnd = toIsoStr(new Date());
     let allLinesNos = [], allConveyors = new Set();
     for (let l in EQUIP_DB) for (let n in EQUIP_DB[l]) { allLinesNos.push(l + '-' + n); allConveyors.add(EQUIP_DB[l][n]); }
     allConveyors.add('OTHERS'); allConveyors = Array.from(allConveyors).sort(); allLinesNos.sort();
@@ -740,8 +683,8 @@ const sortedFiltered = filtered.slice().sort((a,b)=>b.createdAt-a.createdAt);
       </div>
     </div>
     
-    <div class="table-panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0;font-size:.875rem;font-weight:800">ACM List</h3>
-	
+    <div class="table-panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0;font-size:.875rem;font-weight:800">Recent Maintenance Memos</h3><button id="dash-export-btn" class="btn-export-excel" title="Export this table to Excel"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>Export</button></div><div id="dash-table-container"></div></div>
+    
     <div id="full-view-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(17,24,39,0.85); z-index:999999; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
       <div id="full-view-modal-content" style="background:var(--paper); width:96%; height:96%; border-radius:14px; display:flex; flex-direction:column; padding:20px; box-shadow:0 12px 32px rgba(0,0,0,0.3); overflow:hidden;">
          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-shrink:0;">
@@ -774,10 +717,8 @@ const sortedFiltered = filtered.slice().sort((a,b)=>b.createdAt-a.createdAt);
     ['dash-start', 'dash-end', 'dash-line', 'dash-conveyor'].forEach(id => { const el = document.getElementById(id); if(el) el.addEventListener(id.includes('line')||id.includes('conveyor')?'input':'change', updateDashboardUI); });
     
     document.getElementById('dash-reset-btn').addEventListener('click', () => {
-      memoDisplayLimit = 10; // <-- Add this line here
       document.getElementById('dash-start').value = defStart; document.getElementById('dash-end').value = defEnd;
       document.querySelectorAll('input[name="dash-urgency"], input[name="dash-cat"], input[name="dash-status"]').forEach(cb => cb.checked = false);
-	  
       const s1 = document.querySelector('#dd-urgency-wrapper .dd-btn'), s2 = document.querySelector('#dd-status-wrapper .dd-btn'), s3 = document.querySelector('#dd-cat-wrapper .dd-btn');
       if(s1) s1.innerHTML = 'All'; if(s2) s2.innerHTML = 'All'; if(s3) s3.innerHTML = 'All';
       document.getElementById('dash-line').value = ''; document.getElementById('dash-conveyor').value = ''; updateDashboardUI();
