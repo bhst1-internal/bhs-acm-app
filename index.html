@@ -421,9 +421,28 @@
       if (st === 'open') {
         const t0 = getExactTs(r.happeningDate, r.dd, r.mm, r.yy, r.timeOfHappening);
         if (t0 && r.urgency && URGENCY_MS[r.urgency]) {
-          if (Date.now() > t0 + URGENCY_MS[r.urgency]) {
+          const targetTime = t0 + URGENCY_MS[r.urgency];
+          const now = Date.now();
+          if (now > targetTime) {
             chipStyle = 'background-color:#fee2e2; color:var(--crit); box-shadow:0 0 0 1px var(--crit) inset; cursor:help;';
             tooltipAttr = 'data-tooltip="SLA Overdue"';
+            
+            const overdueMs = now - targetTime;
+            let overdueStr = '';
+            
+            if (r.urgency === 'veryCritical') {
+              const hrs = Math.floor(overdueMs / 3600000);
+              const mins = Math.floor((overdueMs % 3600000) / 60000);
+              overdueStr = `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+            } else if (r.urgency === 'within24hrs') {
+              const hrs = Math.floor(overdueMs / 3600000);
+              overdueStr = `${hrs} hour${hrs !== 1 ? 's' : ''}`;
+            } else { // within1week and within2months
+              const days = Math.floor(overdueMs / 86400000);
+              overdueStr = `${days} day${days !== 1 ? 's' : ''}`;
+            }
+            
+            chipText = `Open (Overdue: ${overdueStr})`;
           }
         }
       }
