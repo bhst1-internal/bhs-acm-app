@@ -654,10 +654,14 @@
       });
   }
 
-  function renderDashboard(container) {
+function renderDashboard(container) {
     const toIsoStr = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    let absoluteMinTs = Date.now(); state.records.filter(r => !r.isDraft).forEach(r => { let t = getTs(r.happeningDate) || getOldTs(r.dd, r.mm, r.yy); if(t && t < absoluteMinTs) absoluteMinTs = t; });
-    const defStart = toIsoStr(new Date(absoluteMinTs)), defEnd = toIsoStr(new Date());
+    
+    // Calculate exactly 30 days before today
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const defStart = toIsoStr(thirtyDaysAgo), defEnd = toIsoStr(new Date());
     let allLinesNos = [], allConveyors = new Set();
     for (let l in EQUIP_DB) for (let n in EQUIP_DB[l]) { allLinesNos.push(l + '-' + n); allConveyors.add(EQUIP_DB[l][n]); }
     allConveyors.add('OTHERS'); allConveyors = Array.from(allConveyors).sort(); allLinesNos.sort();
