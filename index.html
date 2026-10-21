@@ -627,6 +627,9 @@
       
       const toolbar = panel.querySelector('.fv-toolbar-actions');
       if (toolbar) toolbar.style.display = 'none';
+      
+      const labelBtns = panel.querySelectorAll('button[id^="lbl-"]');
+      labelBtns.forEach(b => b.style.display = 'none');
 
       let oH = '', oO = '';
       if(targetId) { 
@@ -638,9 +641,10 @@
       }
 
       const originalDisplay = btn.style.display; btn.style.display = 'none';
-      html2canvas(panel, { scale: 2, backgroundColor: '#ffffff' }).then(canvas => {
+      html2canvas(panel, { scale: 4, backgroundColor: '#ffffff' }).then(canvas => {
         btn.style.display = originalDisplay;
         if (toolbar) toolbar.style.display = 'flex';
+        labelBtns.forEach(b => b.style.display = 'inline-flex');
         
         if(targetId) {
             panel.style.height = oH; panel.style.overflowY = oO;
@@ -653,6 +657,7 @@
       }).catch(err => { 
         console.error(err); btn.style.display = originalDisplay; 
         if (toolbar) toolbar.style.display = 'flex';
+        labelBtns.forEach(b => b.style.display = 'inline-flex');
       });
     });
   }
@@ -791,7 +796,7 @@ function renderDashboard(container) {
       <div class="panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <h3 style="margin:0">Category &amp; Type Overview</h3>
-          <button class="export-chart-btn" id="save-cat-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button>
+          <div style="display:flex;gap:6px"><button class="export-chart-btn" id="lbl-cat-btn" title="Toggle Data Labels" style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg);transition:all 0.2s">Label</button><button class="export-chart-btn" id="save-cat-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg);transition:all 0.2s"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button></div>
         </div>
         <div class="hint">Frequency of faults by category and type across filtered records</div>
         <div style="height:230px;position:relative;width:100%"><canvas id="acm-category-chart"></canvas></div>
@@ -799,7 +804,7 @@ function renderDashboard(container) {
       <div class="panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <h3 style="margin:0">Urgency Distribution</h3>
-          <button class="export-chart-btn" id="save-urg-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button>
+          <div style="display:flex;gap:6px"><button class="export-chart-btn" id="lbl-urg-btn" title="Toggle Data Labels" style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg);transition:all 0.2s">Label</button><button class="export-chart-btn" id="save-urg-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg);transition:all 0.2s"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button></div>
         </div>
         <div class="hint">Distribution of filtered records by urgency level</div>
         <div style="height:230px;position:relative;width:100%"><canvas id="acm-urgency-chart"></canvas></div>
@@ -810,7 +815,7 @@ function renderDashboard(container) {
       <div class="panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <h3 style="margin:0">Parts Overview</h3>
-          <button class="export-chart-btn" id="save-parts-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button>
+          <div style="display:flex;gap:6px"><button class="export-chart-btn" id="lbl-parts-btn" title="Toggle Data Labels" style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg);transition:all 0.2s">Label</button><button class="export-chart-btn" id="save-parts-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg);transition:all 0.2s"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button></div>
         </div>
         <div class="hint">Frequency of replaced/affected parts (Top 15)</div>
         <div style="height:230px;position:relative;width:100%"><canvas id="acm-parts-chart"></canvas></div>
@@ -818,7 +823,7 @@ function renderDashboard(container) {
       <div class="panel">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <h3 style="margin:0">Maintenance Type</h3>
-          <button class="export-chart-btn" id="save-maint-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg)"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button>
+          <div style="display:flex;gap:6px"><button class="export-chart-btn" id="lbl-maint-btn" title="Toggle Data Labels" style="display:inline-flex;align-items:center;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg);transition:all 0.2s">Label</button><button class="export-chart-btn" id="save-maint-btn" title="Save Section as JPEG" style="display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:4px;border:1px solid var(--line);font-size:.65rem;font-weight:700;color:var(--text-sec);cursor:pointer;background:var(--bg);transition:all 0.2s"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:14px;height:14px"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>JPEG</button></div>
         </div>
         <div class="hint">Breakdown of maintenance activities</div>
         <div style="height:230px;position:relative;width:100%"><canvas id="acm-maint-chart"></canvas></div>
@@ -1060,6 +1065,28 @@ function renderDashboard(container) {
 
       const customBgPlugin = { id:'customCanvasBackgroundColor', beforeDraw:(c, a, o)=>{ const ctx=c.ctx; ctx.save(); ctx.globalCompositeOperation='destination-over'; ctx.fillStyle=o.color||'#ffffff'; ctx.fillRect(0,0,c.width,c.height); ctx.restore(); } };
 
+      const valueLabelsPlugin = {
+        id: 'valueLabels',
+        afterDatasetsDraw: chart => {
+          if (!chart.config.options.plugins.valueLabels?.display) return;
+          const ctx = chart.ctx;
+          chart.data.datasets.forEach((dataset, i) => {
+            const meta = chart.getDatasetMeta(i);
+            if (meta.hidden) return;
+            meta.data.forEach((element, index) => {
+              const val = dataset.data[index];
+              if (!val) return;
+              ctx.fillStyle = '#1f2937';
+              ctx.font = 'bold 11px sans-serif';
+              ctx.textAlign = 'center';
+              ctx.textBaseline = 'bottom';
+              const pos = element.tooltipPosition();
+              ctx.fillText(val, pos.x, pos.y - 4);
+            });
+          });
+        }
+      };
+
       const verticalLinePlugin = {
         id: 'verticalLine',
         afterDraw: chart => {
@@ -1101,9 +1128,9 @@ function renderDashboard(container) {
         if(categoryChart) categoryChart.destroy();
         categoryChart = new Chart(catCtx, { 
           type: 'bar', 
-          plugins:[customBgPlugin, verticalLinePlugin], 
+          plugins:[customBgPlugin, verticalLinePlugin, valueLabelsPlugin], 
           data: { labels:[], datasets:[{label:'Occurrences', data:[], backgroundColor:[], borderColor:[], borderWidth:1, borderRadius:4}] }, 
-          options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8}}, scales:{y:{beginAtZero:true, title:{display:true, text:'Total Memo', font:{size:12, weight:'bold'}}, ticks:{stepSize:1, font:{size:10}}}, x:{ticks:{font:{size:10}, maxRotation:0, minRotation:0, display:true}}} } 
+          options: { responsive:true, maintainAspectRatio:false, plugins:{valueLabels:{display:false}, legend:{display:false}, tooltip:{backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8}}, scales:{y:{beginAtZero:true, title:{display:true, text:'Total Memo', font:{size:12, weight:'bold'}}, ticks:{stepSize:1, font:{size:10}}}, x:{ticks:{font:{size:10}, maxRotation:0, minRotation:0, display:true}}} } 
         });
       }
 
@@ -1135,19 +1162,19 @@ function renderDashboard(container) {
       const sliceLabelsPlugin = { 
         id:'sliceLabels', 
         afterDatasetsDraw: c => { 
-          if(c.config.type!=='doughnut') return; 
+          if(c.config.type!=='doughnut' || !c.config.options.plugins.sliceLabels?.display) return; 
           const ctx=c.ctx, ds=c.data.datasets[0], tot=ds.data.reduce((a,b)=>a+b,0); 
           if(!tot) return; 
           c.getDatasetMeta(0).data.forEach((sec,i) => { 
             if(!ds.data[i]) return; 
             const pos=sec.tooltipPosition(); 
-            ctx.fillStyle='#374151'; 
+            ctx.fillStyle='#1f2937'; 
             ctx.font='bold 13px sans-serif'; 
             ctx.textAlign='center'; 
             ctx.textBaseline='middle'; 
             ctx.shadowColor='rgba(255,255,255,0.85)'; 
             ctx.shadowBlur=4; 
-            ctx.fillText(Math.round((ds.data[i]/tot)*100)+'%', pos.x, pos.y); 
+            ctx.fillText(ds.data[i], pos.x, pos.y); 
             ctx.shadowBlur=0; 
           }); 
         } 
@@ -1156,16 +1183,16 @@ function renderDashboard(container) {
       const urgCtx = document.getElementById('acm-urgency-chart');
       if (urgCtx) {
         if(urgencyChart) urgencyChart.destroy();
-        urgencyChart = new Chart(urgCtx, { type: 'doughnut', plugins: [customBgPlugin, centerTextPlugin, sliceLabelsPlugin], data: { labels:['Very Critical', 'Within 24hrs', 'Within 1 week', 'Within 2 months'], datasets:[{data:[0,0,0,0], backgroundColor:['rgba(220, 38, 38, 0.45)', 'rgba(217, 119, 6, 0.45)', 'rgba(234, 179, 8, 0.45)', 'rgba(37, 99, 235, 0.45)'], borderColor:['rgba(220, 38, 38, 1)', 'rgba(217, 119, 6, 1)', 'rgba(234, 179, 8, 1)', 'rgba(37, 99, 235, 1)'], borderWidth:1, hoverOffset:4}] }, options: { responsive:true, maintainAspectRatio:false, cutout:'45%', plugins:{ legend:{position:'right', labels:{usePointStyle:true, pointStyle:'circle', boxWidth:8, font:{size:11}}}, tooltip:{ backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8, callbacks:{ label: c => ` ${c.label||''}: ${c.raw||0} memo${c.raw!==1?'s':''} (${Math.round(((c.raw||0)/(c.chart._metasets[c.datasetIndex].total||1))*100)}%)` } } } } });
+        urgencyChart = new Chart(urgCtx, { type: 'doughnut', plugins: [customBgPlugin, centerTextPlugin, sliceLabelsPlugin], data: { labels:['Very Critical', 'Within 24hrs', 'Within 1 week', 'Within 2 months'], datasets:[{data:[0,0,0,0], backgroundColor:['rgba(220, 38, 38, 0.45)', 'rgba(217, 119, 6, 0.45)', 'rgba(234, 179, 8, 0.45)', 'rgba(37, 99, 235, 0.45)'], borderColor:['rgba(220, 38, 38, 1)', 'rgba(217, 119, 6, 1)', 'rgba(234, 179, 8, 1)', 'rgba(37, 99, 235, 1)'], borderWidth:1, hoverOffset:4}] }, options: { responsive:true, maintainAspectRatio:false, cutout:'45%', plugins:{ sliceLabels:{display:false}, legend:{position:'right', labels:{usePointStyle:true, pointStyle:'circle', boxWidth:8, font:{size:11}}}, tooltip:{ backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8, callbacks:{ label: c => ` ${c.label||''}: ${c.raw||0} memo${c.raw!==1?'s':''} (${Math.round(((c.raw||0)/(c.chart._metasets[c.datasetIndex].total||1))*100)}%)` } } } } });
       }
 
       const partsCtx = document.getElementById('acm-parts-chart');
       if (partsCtx) {
         if(partsChart) partsChart.destroy();
         partsChart = new Chart(partsCtx, { 
-          type: 'bar', plugins:[customBgPlugin], 
+          type: 'bar', plugins:[customBgPlugin, valueLabelsPlugin], 
           data: { labels:[], datasets:[{label:'Frequency', data:[], backgroundColor:'rgba(16, 185, 129, 0.45)', borderColor:'rgba(16, 185, 129, 1)', borderWidth:1, borderRadius:4}] }, 
-          options: { responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8}}, scales:{y:{beginAtZero:true, ticks:{stepSize:1, font:{size:10}}}, x:{ticks:{font:{size:10}, maxRotation:45, minRotation:45, display:true}}} } 
+          options: { responsive:true, maintainAspectRatio:false, plugins:{valueLabels:{display:false}, legend:{display:false}, tooltip:{backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8}}, scales:{y:{beginAtZero:true, title:{display:true, text:'Total Memo', font:{size:12, weight:'bold'}}, ticks:{stepSize:1, font:{size:10}}}, x:{ticks:{font:{size:10}, maxRotation:45, minRotation:45, display:true}}} } 
         });
       }
 
@@ -1175,9 +1202,27 @@ function renderDashboard(container) {
         maintChart = new Chart(maintCtx, { 
           type: 'doughnut', plugins: [customBgPlugin, centerTextPlugin, sliceLabelsPlugin], 
           data: { labels:['Breakdown', 'Corrective', 'Preventive'], datasets:[{data:[0,0,0], backgroundColor:['rgba(220, 38, 38, 0.45)', 'rgba(217, 119, 6, 0.45)', 'rgba(37, 99, 235, 0.45)'], borderColor:['rgba(220, 38, 38, 1)', 'rgba(217, 119, 6, 1)', 'rgba(37, 99, 235, 1)'], borderWidth:1, hoverOffset:4}] }, 
-          options: { responsive:true, maintainAspectRatio:false, cutout:'45%', plugins:{ legend:{position:'right', labels:{usePointStyle:true, pointStyle:'circle', boxWidth:8, font:{size:11}}} } } 
+          options: { responsive:true, maintainAspectRatio:false, cutout:'45%', plugins:{ sliceLabels:{display:false}, legend:{position:'right', labels:{usePointStyle:true, pointStyle:'circle', boxWidth:8, font:{size:11}}} } } 
         });
       }
+
+      const bindLbl = (btnId, chartObj, pluginId) => {
+        const btn = document.getElementById(btnId);
+        if(!btn || !chartObj) return;
+        btn.addEventListener('click', () => {
+          const opts = chartObj.options.plugins[pluginId] = chartObj.options.plugins[pluginId] || { display: false };
+          opts.display = !opts.display;
+          btn.style.backgroundColor = opts.display ? 'var(--line-dark)' : 'var(--bg)';
+          btn.style.color = opts.display ? '#ffffff' : 'var(--text-sec)';
+          btn.style.borderColor = opts.display ? 'var(--line-dark)' : 'var(--line)';
+          chartObj.update();
+        });
+      };
+      
+      bindLbl('lbl-cat-btn', categoryChart, 'valueLabels');
+      bindLbl('lbl-parts-btn', partsChart, 'valueLabels');
+      bindLbl('lbl-urg-btn', urgencyChart, 'sliceLabels');
+      bindLbl('lbl-maint-btn', maintChart, 'sliceLabels');
 
       updateDashboardUI();
     });
