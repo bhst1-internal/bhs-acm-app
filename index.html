@@ -1133,7 +1133,7 @@ function renderDashboard(container) {
           type: 'bar', 
           plugins:[customBgPlugin, verticalLinePlugin, valueLabelsPlugin], 
           data: { labels:[], datasets:[{label:'Occurrences', data:[], backgroundColor:[], borderColor:[], borderWidth:1, borderRadius:4}] }, 
-          options: { responsive:true, maintainAspectRatio:false, plugins:{valueLabels:{display:false}, legend:{display:false}, tooltip:{backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8}}, scales:{y:{beginAtZero:true, title:{display:true, text:'Total Memo', font:{size:12, weight:'bold'}}, ticks:{stepSize:1, font:{size:10}}}, x:{ticks:{font:{size:10}, maxRotation:0, minRotation:0, display:true}}} } 
+          options: { layout: { padding: { top: 25 } }, responsive:true, maintainAspectRatio:false, plugins:{valueLabels:{display:false}, legend:{display:false}, tooltip:{backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8}}, scales:{y:{grace:'20%', beginAtZero:true, title:{display:true, text:'Total Memo', font:{size:12, weight:'bold'}}, ticks:{stepSize:1, font:{size:10}}}, x:{ticks:{font:{size:10}, maxRotation:0, minRotation:0, display:true}}} } 
         });
       }
 
@@ -1197,7 +1197,7 @@ function renderDashboard(container) {
         partsChart = new Chart(partsCtx, { 
           type: 'bar', plugins:[customBgPlugin, valueLabelsPlugin], 
           data: { labels:[], datasets:[{label:'Frequency', data:[], backgroundColor:'rgba(16, 185, 129, 0.45)', borderColor:'rgba(16, 185, 129, 1)', borderWidth:1, borderRadius:4}] }, 
-          options: { responsive:true, maintainAspectRatio:false, plugins:{valueLabels:{display:false}, legend:{display:false}, tooltip:{backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8}}, scales:{y:{beginAtZero:true, title:{display:true, text:'Total Memo', font:{size:12, weight:'bold'}}, ticks:{stepSize:1, font:{size:10}}}, x:{ticks:{font:{size:10}, maxRotation:45, minRotation:45, display:true}}} } 
+          options: { layout: { padding: { top: 25 } }, responsive:true, maintainAspectRatio:false, plugins:{valueLabels:{display:false}, legend:{display:false}, tooltip:{backgroundColor:'rgba(17, 24, 39, 0.95)', titleFont:{size:13, weight:'bold'}, bodyFont:{size:12}, padding:10, cornerRadius:8}}, scales:{y:{grace:'20%', beginAtZero:true, title:{display:true, text:'Total Memo', font:{size:12, weight:'bold'}}, ticks:{stepSize:1, font:{size:10}}}, x:{ticks:{font:{size:10}, maxRotation:45, minRotation:45, display:true}}} } 
         });
       }
 
