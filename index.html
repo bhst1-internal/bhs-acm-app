@@ -278,20 +278,51 @@
     activeRecs = activeRecs || state.records.filter(r => !r.isDraft);
     const open = activeRecs.filter(r => getStatus(r) !== 'done'), completed = activeRecs.filter(r => getStatus(r) === 'done');
     let resTimes = [], catCounts = {}, ratedTotal = 0, onTime = 0;
-    Object.keys(CATS).forEach(k => catCounts[CATS[k]] = 0); Object.keys(CATS2).forEach(k => catCounts[CATS2[k]] = 0);
+    
+    Object.keys(CATS).forEach(k => catCounts[CATS[k]] = 0); 
+    Object.keys(CATS2).forEach(k => catCounts[CATS2[k]] = 0);
+    
     activeRecs.forEach(r => {
       if(r.cat1) Object.keys(CATS).forEach(k => { if(r.cat1[k]) catCounts[CATS[k]]++; });
       if(r.cat2) Object.keys(CATS2).forEach(k => { if(r.cat2[k]) catCounts[CATS2[k]]++; });
     });
+
+    // 1. Calculate SLA for Completed Memos
     completed.forEach(r => {
       const t0 = getExactTs(r.happeningDate, r.dd, r.mm, r.yy, r.timeOfHappening);
       const t1 = getExactTs(r.actionDate, r.actDd, r.actMm, r.actYy, r.actEndTime);
       if(t0 && t1 && t1 >= t0) resTimes.push((t1 - t0) / 86400000); 
-      if(t0 && t1 && URGENCY_MS[r.urgency]) { ratedTotal++; if((t1 - t0) <= URGENCY_MS[r.urgency]) onTime++; }
+      if(t0 && t1 && URGENCY_MS[r.urgency]) { 
+        ratedTotal++; 
+        if((t1 - t0) <= URGENCY_MS[r.urgency]) onTime++; 
+      }
     });
+
+    // 2. Calculate SLA for Open/In-Progress Memos
+    const now = Date.now();
+    open.forEach(r => {
+      const t0 = getExactTs(r.happeningDate, r.dd, r.mm, r.yy, r.timeOfHappening);
+      if (t0 && r.urgency && URGENCY_MS[r.urgency]) {
+        if (now > t0 + URGENCY_MS[r.urgency]) {
+          ratedTotal++;
+        }
+      }
+    });
+
     let topCat = null, topCatCount = 0;
     Object.entries(catCounts).forEach(([k,v]) => { if(v > topCatCount) { topCat = k; topCatCount = v; } });
-    return { total: activeRecs.length, openCount: open.length, completedCount: completed.length, avgRes: resTimes.length ? (resTimes.reduce((a,b)=>a+b,0)/resTimes.length) : null, criticalPending: open.filter(r => r.urgency === 'veryCritical' || r.urgency === 'within24hrs').length, topCat, topCatCount, onTimeRate: ratedTotal ? Math.round((onTime/ratedTotal)*100) : null, catCounts };
+    
+    return { 
+      total: activeRecs.length, 
+      openCount: open.length, 
+      completedCount: completed.length, 
+      avgRes: resTimes.length ? (resTimes.reduce((a,b)=>a+b,0)/resTimes.length) : null, 
+      criticalPending: open.filter(r => r.urgency === 'veryCritical' || r.urgency === 'within24hrs').length, 
+      topCat, 
+      topCatCount, 
+      onTimeRate: ratedTotal > 0 ? Math.round((onTime/ratedTotal)*100) : null, 
+      catCounts 
+    };
   }
 
   function applyTimelineFilters(chartInstance, containerId) {
