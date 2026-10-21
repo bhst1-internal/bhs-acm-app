@@ -425,7 +425,6 @@
           const now = Date.now();
           if (now > targetTime) {
             chipStyle = 'background-color:#fee2e2; color:var(--crit); box-shadow:0 0 0 1px var(--crit) inset; cursor:help;';
-            tooltipAttr = 'data-tooltip="SLA Overdue"';
             
             const overdueMs = now - targetTime;
             let overdueStr = '';
@@ -442,7 +441,8 @@
               overdueStr = `${days} day${days !== 1 ? 's' : ''}`;
             }
             
-            chipText = `Open (Overdue: ${overdueStr})`;
+            // Assign the detailed string to the tooltip instead of the chip text
+            tooltipAttr = `data-tooltip="SLA Overdue by ${overdueStr}"`;
           }
         }
       }
