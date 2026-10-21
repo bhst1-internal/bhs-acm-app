@@ -168,17 +168,21 @@
     'SORTER CART', 'CROSS PIN', 'JOINT BRACKET', 'CONVEYOR STAND', 'SLIDER BED', 'MAKE UP CHUTE STAND'
   ].sort();
 
-  function showModal(title, msg, type = 'alert', errorMode = false) {
+  function showModal(title, msg, type = 'alert', errorMode = false, inputType = 'text') {
     return new Promise(resolve => {
       let overlay = document.getElementById('acm-modal-overlay');
       if(!overlay){
         overlay = document.createElement('div');
         overlay.id = 'acm-modal-overlay';
-        overlay.innerHTML = `<div id="acm-modal-box"><div id="acm-modal-title"></div><div id="acm-modal-msg"></div><input type="password" id="acm-modal-input" placeholder="Enter password..." autocomplete="new-password"/><div id="acm-modal-actions"></div></div>`;
+        overlay.innerHTML = `<div id="acm-modal-box"><div id="acm-modal-title"></div><div id="acm-modal-msg"></div><input type="text" id="acm-modal-input" placeholder="Enter value..." autocomplete="new-password"/><div id="acm-modal-actions"></div></div>`;
       }
       if(overlay.parentNode !== ROOT) ROOT.appendChild(overlay);
       const titleEl = overlay.querySelector('#acm-modal-title'), msgEl = overlay.querySelector('#acm-modal-msg'), inputEl = overlay.querySelector('#acm-modal-input'), actionsEl = overlay.querySelector('#acm-modal-actions');
-      titleEl.textContent = title; msgEl.textContent = msg; inputEl.style.display = type === 'prompt' ? 'block' : 'none'; inputEl.value = ''; actionsEl.innerHTML = '';
+      titleEl.textContent = title; msgEl.textContent = msg; 
+      inputEl.style.display = type === 'prompt' ? 'block' : 'none'; 
+      inputEl.type = inputType;
+      inputEl.placeholder = inputType === 'password' ? 'Enter password...' : 'Enter text...';
+      inputEl.value = ''; actionsEl.innerHTML = '';
       function close() { overlay.classList.remove('active'); }
       const createBtn = (cls, text, cb) => { const b = document.createElement('button'); b.className = cls; b.textContent = text; b.onclick = () => { close(); cb(); }; return b; };
       if(type === 'alert') actionsEl.appendChild(createBtn(errorMode ? 'btn btn-danger' : 'btn btn-primary', 'OK', () => resolve(true)));
@@ -462,7 +466,7 @@
     }).join('');
     
     const tContainer = document.getElementById('dash-table-container');
-    if (tContainer) tContainer.innerHTML = filtered.length===0?`<div class="empty-state">No records found matching filters.</div>`:`<table class="list"><thead><tr><th>Report No.</th><th>Date Issued</th><th>Title</th><th>Line/<br/>Equipment</th><th style="width:11%">No.</th><th>Conveyor/Item</th><th style="width:11%">Category</th><th>Type</th><th>Urgency</th><th>Date Completed</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+    if (tContainer) tContainer.innerHTML = filtered.length===0?`<div class="empty-state">No records found matching filters.</div>`:`<table class="list"><thead><tr><th>Report No.</th><th>Date Issued</th><th>Title</th><th>Line/<br/>Equipment</th><th>No.</th><th>Conveyor/Item</th><th>Category</th><th>Type</th><th>Urgency</th><th>Date Completed</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
 	
     document.querySelectorAll('[data-act="open"]').forEach(btn => btn.addEventListener('click', () => { state.activeId = String(btn.getAttribute('data-id')); state.tab = 'input'; render(); }));
 
@@ -1222,7 +1226,7 @@ function renderDashboard(container) {
     container.querySelector('#acm-new-btn').addEventListener('click', async () => { if(await wrapAction()){ await showModal("Notice", "Please enter accurate INPUT for records", "alert"); const nr = blankRecord(); nr.reportNo = getNextReportNo(); state.records.unshift(nr); state.activeId = nr.createdAt; state.showErrors = false; state.isDirty = false; saveRecords(); render(); } });
     container.querySelector('#acm-del-btn').addEventListener('click', async () => {
       if(!await showModal("Confirm Deletion", "Delete this record? This cannot be undone.", "confirm")) return;
-      const pass = await showModal("Authorization", "Password required to delete this record:", "prompt");
+      const pass = await showModal("Authorization", "Password required to delete this record:", "prompt", false, "password");
       if(pass === 'KLIA123!') {
         fetch(WEB_APP_URL, { method:'POST', mode:'no-cors', body:new URLSearchParams({payload: JSON.stringify({action:'delete', createdAt:r.createdAt})}) }).catch(console.error);
         state.records = state.records.filter(x => String(x.createdAt) !== String(r.createdAt)); state.activeId = state.records.length ? state.records[0].createdAt : null; state.showErrors = false; state.isDirty = false; saveRecords(); render(); await showModal("Deleted", "Record removed successfully.", "alert");
@@ -1262,7 +1266,7 @@ function renderDashboard(container) {
     container.querySelectorAll('[data-path]').forEach(el => el.addEventListener((el.type==='checkbox'||el.type==='radio'||el.tagName==='SELECT')?'change':'input', async () => {
       const path = el.getAttribute('data-path'); let newVal = el.type==='checkbox'?el.checked:el.value;
       if(path === 'confirmedByName' && newVal !== '') {
-        const pwd = await showModal("Authorization", `Enter 6-digit pin for ${newVal}:`, "prompt");
+        const pwd = await showModal("Authorization", `Enter 6-digit pin for ${newVal}:`, "prompt", false, "password");
         if(pwd !== CONF_PASS[newVal]) { await showModal("Error", "Incorrect pin. Signature reversed.", "alert", true); el.value = r.confirmedByName || ''; return; }
       }
       
