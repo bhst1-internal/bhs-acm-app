@@ -458,11 +458,11 @@
         }
       }
 
-      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td>${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td class="mono-font">${actDateStr}</td><td><span class="status-chip ${chipClass}" ${tooltipAttr} style="${chipStyle}">${chipText}</span></td></tr>`;
+      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td style="white-space:nowrap">${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td class="mono-font">${actDateStr}</td><td><span class="status-chip ${chipClass}" ${tooltipAttr} style="${chipStyle}">${chipText}</span></td></tr>`;
     }).join('');
     
     const tContainer = document.getElementById('dash-table-container');
-    if (tContainer) tContainer.innerHTML = filtered.length===0?`<div class="empty-state">No records found matching filters.</div>`:`<table class="list"><thead><tr><th>Report No.</th><th>Date Issued</th><th>Title</th><th>Line/Equipment</th><th>No.</th><th>Conveyor/Item</th><th>Category</th><th>Type</th><th>Urgency</th><th>Date Completed</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+    if (tContainer) tContainer.innerHTML = filtered.length===0?`<div class="empty-state">No records found matching filters.</div>`:`<table class="list"><thead><tr><th>Report No.</th><th>Date Issued</th><th>Title</th><th>Line/<br/>Equipment</th><th style="width:11%">No.</th><th>Conveyor/Item</th><th style="width:11%">Category</th><th>Type</th><th>Urgency</th><th>Date Completed</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
 	
     document.querySelectorAll('[data-act="open"]').forEach(btn => btn.addEventListener('click', () => { state.activeId = String(btn.getAttribute('data-id')); state.tab = 'input'; render(); }));
 
