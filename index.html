@@ -361,11 +361,15 @@
       if(r.cat1) Object.keys(CATS).forEach(k => { if(r.cat1[k]) catList.push(CATS[k]); });
       let typeList = [];
       if(r.cat2) Object.keys(CATS2).forEach(k => { if(r.cat2[k]) typeList.push(CATS2[k]); });
-      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td>${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td><span class="status-chip ${st==='done'?'chip-done':st==='progress'?'chip-progress':'chip-open'}">${st==='done'?'Completed':st==='progress'?'In progress':'Open'}</span></td></tr>`;
+      
+      const formatActDate = (rec) => { if (rec.actionDate) { const p = String(rec.actionDate).substring(0, 10).split('-'); if (p.length === 3) return `${p[2]}/${p[1]}/${p[0].slice(-2)}`; } return (!rec.actDd && !rec.actMm && !rec.actYy) ? '—' : `${(rec.actDd||'--').padStart(2,'0')}/${(rec.actMm||'--').padStart(2,'0')}/${rec.actYy||'--'}`; };
+      const dateCompleted = formatActDate(r);
+
+      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td>${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td class="mono-font">${dateCompleted}</td><td><span class="status-chip ${st==='done'?'chip-done':st==='progress'?'chip-progress':'chip-open'}">${st==='done'?'Completed':st==='progress'?'In progress':'Open'}</span></td></tr>`;
     }).join('');
     
     const tContainer = document.getElementById('dash-table-container');
-    if (tContainer) tContainer.innerHTML = filtered.length===0?`<div class="empty-state">No records found matching filters.</div>`:`<table class="list"><thead><tr><th>Report No.</th><th>Date</th><th>Title</th><th>Line/Equipment</th><th>No.</th><th>Conveyor/Item</th><th>Category</th><th>Type</th><th>Urgency</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+    if (tContainer) tContainer.innerHTML = filtered.length===0?`<div class="empty-state">No records found matching filters.</div>`:`<table class="list"><thead><tr><th>Report No.</th><th>Date Issued</th><th>Title</th><th>Line/Equipment</th><th>No.</th><th>Conveyor/Item</th><th>Category</th><th>Type</th><th>Urgency</th><th>Date Completed</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
 
     document.querySelectorAll('[data-act="open"]').forEach(btn => btn.addEventListener('click', () => { state.activeId = String(btn.getAttribute('data-id')); state.tab = 'input'; render(); }));
 
@@ -687,8 +691,8 @@ function renderDashboard(container) {
       </div>
     </div>
     
-    <div class="table-panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0;font-size:.875rem;font-weight:800">Recent Maintenance Memos</h3><button id="dash-export-btn" class="btn-export-excel" title="Export this table to Excel"><svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>Export</button></div><div id="dash-table-container"></div></div>
-    
+    <div class="table-panel"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h3 style="margin:0;font-size:.875rem;font-weight:800">ACM List</h3>
+	
     <div id="full-view-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(17,24,39,0.85); z-index:999999; align-items:center; justify-content:center; backdrop-filter:blur(3px);">
       <div id="full-view-modal-content" style="background:var(--paper); width:96%; height:96%; border-radius:14px; display:flex; flex-direction:column; padding:20px; box-shadow:0 12px 32px rgba(0,0,0,0.3); overflow:hidden;">
          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-shrink:0;">
@@ -731,12 +735,13 @@ function renderDashboard(container) {
     document.getElementById('dash-export-btn').addEventListener('click', () => {
       const filteredForExport = getFilteredDashboardRecords().sort((a,b)=>b.createdAt-a.createdAt);
       if(filteredForExport.length === 0) return showModal("Export Failed", "No records to export based on current filters.", "alert", true);
-      const csvRows = [['Report No.', 'Date', 'Title', 'Line/Equipment', 'No.', 'Conveyor/Item', 'Category', 'Type', 'Urgency', 'Status']];
+      const csvRows = [['Report No.', 'Date Issued', 'Title', 'Line/Equipment', 'No.', 'Conveyor/Item', 'Category', 'Type', 'Urgency', 'Date Completed', 'Status']];
       filteredForExport.forEach(r => {
         const st = getStatus(r), urg = URGENCY[r.urgency] || '';
         let catList = []; if(r.cat1) Object.keys(CATS).forEach(k => { if(r.cat1[k]) catList.push(CATS[k]); });
         let typeList = []; if(r.cat2) Object.keys(CATS2).forEach(k => { if(r.cat2[k]) typeList.push(CATS2[k]); });
-        csvRows.push([ `"${r.reportNo||''}"`, `"${fmtDate(r)}"`, `"${(r.title||'').replace(/"/g,'""')}"`, `"${r.lineEquipment||''}"`, `"${r.equipNo||''}"`, `"${(r.conveyorItem||'').replace(/"/g,'""')}"`, `"${catList.join(', ')}"`, `"${typeList.join(', ')}"`, `"${urg}"`, `"${st==='done'?'Completed':st==='progress'?'In progress':'Open'}"` ]);
+        const formatActDate = (rec) => { if (rec.actionDate) { const p = String(rec.actionDate).substring(0, 10).split('-'); if (p.length === 3) return `${p[2]}/${p[1]}/${p[0].slice(-2)}`; } return (!rec.actDd && !rec.actMm && !rec.actYy) ? '—' : `${(rec.actDd||'--').padStart(2,'0')}/${(rec.actMm||'--').padStart(2,'0')}/${rec.actYy||'--'}`; };
+        csvRows.push([ `"${r.reportNo||''}"`, `"${fmtDate(r)}"`, `"${(r.title||'').replace(/"/g,'""')}"`, `"${r.lineEquipment||''}"`, `"${r.equipNo||''}"`, `"${(r.conveyorItem||'').replace(/"/g,'""')}"`, `"${catList.join(', ')}"`, `"${typeList.join(', ')}"`, `"${urg}"`, `"${formatActDate(r)}"`, `"${st==='done'?'Completed':st==='progress'?'In progress':'Open'}"` ]);
       });
       const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF" + csvRows.map(e=>e.join(",")).join("\n")], {type:'text/csv;charset=utf-8;'})); link.download = "Filtered_Maintenance_Memos.csv"; document.body.appendChild(link); link.click(); document.body.removeChild(link);
     });
