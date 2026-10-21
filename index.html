@@ -366,8 +366,11 @@
       if (r.actionDate) { const p = String(r.actionDate).substring(0, 10).split('-'); if (p.length === 3) actDateStr = `${p[2]}/${p[1]}/${p[0].slice(-2)}`; } 
       else if (r.actDd || r.actMm || r.actYy) { actDateStr = `${(r.actDd||'--').padStart(2,'0')}/${(r.actMm||'--').padStart(2,'0')}/${r.actYy||'--'}`; }
 
-      // Calculate pending sections for the tooltip if status is "progress"
       let tooltipAttr = '';
+      let chipClass = st === 'done' ? 'chip-done' : (st === 'progress' ? 'chip-progress' : 'chip-open');
+      let chipStyle = '';
+      let chipText = st === 'done' ? 'Completed' : (st === 'progress' ? 'In progress' : 'Open');
+
       if (st === 'progress') {
         const wordCount = str => (str || '').trim().split(/\s+/).filter(w => w.length > 0).length;
         let agBase = r.actGroup || '', actGroupValid = agBase.toUpperCase().startsWith('VENDOR') ? agBase.substring(6).replace(/^:\s*/, '').trim().length > 0 : agBase.trim() !== '';
@@ -381,9 +384,20 @@
         if (!((r.doneByName || '').trim().length >= 3 && (r.checkByName || '').trim().length >= 3 && checkReq(r.confirmedByName))) pItems.push('Sign-off');
         
         if (pItems.length > 0) tooltipAttr = `data-tooltip="Missing: ${pItems.join(', ')}"`;
+        chipStyle = 'cursor:help;';
       }
 
-      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td>${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td class="mono-font">${actDateStr}</td><td><span class="status-chip ${st==='done'?'chip-done':st==='progress'?'chip-progress':'chip-open'}" ${tooltipAttr} style="${st==='progress'?'cursor:help':''}">${st==='done'?'Completed':st==='progress'?'In progress':'Open'}</span></td></tr>`;
+      if (st === 'open') {
+        const t0 = getExactTs(r.happeningDate, r.dd, r.mm, r.yy, r.timeOfHappening);
+        if (t0 && r.urgency && URGENCY_MS[r.urgency]) {
+          if (Date.now() > t0 + URGENCY_MS[r.urgency]) {
+            chipStyle = 'background-color:#fee2e2; color:var(--crit); box-shadow:0 0 0 1px var(--crit) inset; cursor:help;';
+            tooltipAttr = 'data-tooltip="SLA Overdue"';
+          }
+        }
+      }
+
+      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td>${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td class="mono-font">${actDateStr}</td><td><span class="status-chip ${chipClass}" ${tooltipAttr} style="${chipStyle}">${chipText}</span></td></tr>`;
     }).join('');
     
     const tContainer = document.getElementById('dash-table-container');
