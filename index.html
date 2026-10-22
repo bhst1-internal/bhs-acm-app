@@ -603,15 +603,22 @@
       if (state.partsChartMode === 'conveyor') {
         filtered.forEach(r => { 
           if(r.conveyorItem && r.conveyorItem.toUpperCase().includes('CONVEYOR')) {
-            counts[r.conveyorItem.toUpperCase()] = (counts[r.conveyorItem.toUpperCase()] || 0) + 1; 
+            // Remove the word 'CONVEYOR' from the label to make it cleaner
+            let cleanLabel = r.conveyorItem.toUpperCase().replace('CONVEYOR', '').trim();
+            if (cleanLabel === '') cleanLabel = 'CONVEYOR'; // Fallback if it was just "CONVEYOR"
+            counts[cleanLabel] = (counts[cleanLabel] || 0) + 1; 
           }
         });
+        partsChart.data.datasets[0].backgroundColor = 'rgba(37, 99, 235, 0.45)';
+        partsChart.data.datasets[0].borderColor = 'rgba(37, 99, 235, 1)';
       } else {
         filtered.forEach(r => { 
           if(r.title && r.title.trim()!=='') {
             counts[r.title.toUpperCase()] = (counts[r.title.toUpperCase()] || 0) + 1; 
           }
         });
+        partsChart.data.datasets[0].backgroundColor = 'rgba(16, 185, 129, 0.45)';
+        partsChart.data.datasets[0].borderColor = 'rgba(16, 185, 129, 1)';
       }
       const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0, 15);
       partsChart.data.labels = sorted.map(x=>x[0]);
