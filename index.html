@@ -10,6 +10,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>BHS Operation &amp; Maintenance Action Memo (ACM)</title>
 <style>
+  html,body{margin:0;padding:0;background:#f3f4f6;min-height:100%}
   #acm-root,#acm-root *{box-sizing:border-box}
   #acm-root{--ink:#1f2937;--ink-light:#374151;--paper:#ffffff;--line:#e5e7eb;--line-dark:#9ca3af;--accent:#2563eb;--accent-2:#1d4ed8;--bg:#f3f4f6;--input-bg:#f9fafb;--text-sec:#6b7280;--ok:#059669;--warn:#d97706;--crit:#dc2626;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg);padding:0;min-height:100%;font-size:.875rem;line-height:1.4;position:relative}
   .mono-font,#acm-root input[type=date],#acm-root input[type=time],#acm-root .kpi-value,#acm-root .doc-footer-code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
@@ -251,8 +252,8 @@
     #acm-root .doc-page .doc-footer-code{position:fixed!important;bottom:5mm!important;right:10mm!important}
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
 </head>
 <body>
 <div id="acm-root"></div>
@@ -700,13 +701,15 @@
   // Storage Persistence: window.storage with localStorage fallback + safe cloud fetch
   async function loadRecords() {
     try {
+      let parsed = null;
       if (window.storage) {
         const res = await window.storage.get(STORE_KEY, false);
-        if (res && res.value) state.records = JSON.parse(res.value);
+        if (res && res.value) parsed = JSON.parse(res.value);
       } else if (window.localStorage) {
         const raw = window.localStorage.getItem(STORE_KEY);
-        if (raw) state.records = JSON.parse(raw);
+        if (raw) parsed = JSON.parse(raw);
       }
+      state.records = Array.isArray(parsed) ? parsed.filter(x => x && typeof x === 'object') : [];
     } catch (e) {
       state.records = [];
     }
@@ -966,9 +969,17 @@
   // =========================================================
   let timelineChart = null, categoryChart = null, urgencyChart = null, partsChart = null, maintChart = null;
   function ensureChartJs(cb) {
-    if (window.Chart && window.html2canvas) return cb();
-    if (document.getElementById('chartjs-script')) { let attempts=0, check=setInterval(()=>{ if(window.Chart && window.html2canvas){ clearInterval(check);cb(); } else if(++attempts>30){ clearInterval(check);cb(); } }, 100); return; }
-    const s = document.createElement('script'); s.id = 'chartjs-script'; s.src = 'https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.js'; document.head.appendChild(s);
+    if (window.Chart) return cb();
+    let attempts = 0;
+    const poll = setInterval(() => {
+      if (window.Chart) {
+        clearInterval(poll);
+        cb();
+      } else if (++attempts > 40) {
+        clearInterval(poll);
+        cb();
+      }
+    }, 150);
   }
 
   function getFilteredDashboardRecords() {
@@ -1656,6 +1667,9 @@
     bindJPEGExport('full-view-export-btn', 'ACM_Timeline_FullView.jpg', 'full-view-modal-content');
     bindJPEGExport('save-parts-btn', 'Parts_Overview.jpg');
     bindJPEGExport('save-maint-btn', 'Maintenance_Type.jpg');
+
+    // Render KPIs and table immediately without waiting on external chart libraries
+    updateDashboardUI();
 
     ensureChartJs(() => {
       if(typeof Chart === 'undefined') { const errDiv = document.getElementById('timeline-scroll-container'); if(errDiv) errDiv.innerHTML = `<div style="text-align:center;padding-top:40px;color:#dc2626;font-weight:bold;font-size:14px;">Chart.js could not be loaded. Please check your network or firewall.</div>`; return; }
@@ -2622,21 +2636,27 @@
   });
 
   function render() {
-    ROOT.innerHTML = `<div class="wrap"><div class="topbar"><div class="brand"><div class="k">KLIA - Baggage Handling System T1</div><div class="t">BHS Operation & Maintenance Action Memo (ACM)</div></div><div class="tabs"><button class="tab-btn ${state.tab==='dashboard'?'active':''}" data-tab="dashboard">Dashboard</button><button class="tab-btn ${state.tab==='input'?'active':''}" data-tab="input">Memo Details</button><button class="tab-btn ${state.tab==='document'?'active':''}" data-tab="document">Memo View</button><button class="tab-btn ${state.tab==='newDocument'?'active':''}" data-tab="newDocument">New Memo View</button></div></div><div id="acm-content"></div></div>`;
-    ROOT.querySelectorAll('.tab-btn').forEach(b => {
-      b.addEventListener('click', async () => { 
-        const targetTab = b.getAttribute('data-tab');
-        if (state.tab === 'input' && targetTab !== 'input' && state.isDirty) { const discard = await showModal("Unsaved Changes Detected", "You have entered or modified data that has not been submitted yet.\n\nPlease click \"Submit ✔\" to record your data, or click \"Discard Data\" to abandon your recent changes.", "unsaved"); if (!discard) return; revertActiveRecord(); }
-        if (targetTab === 'input') state.refImgExpanded = false;
-        state.tab = targetTab; render(); 
+    if (!ROOT) return;
+    try {
+      ROOT.innerHTML = `<div class="wrap"><div class="topbar"><div class="brand"><div class="k">KLIA - Baggage Handling System T1</div><div class="t">BHS Operation & Maintenance Action Memo (ACM)</div></div><div class="tabs"><button class="tab-btn ${state.tab==='dashboard'?'active':''}" data-tab="dashboard">Dashboard</button><button class="tab-btn ${state.tab==='input'?'active':''}" data-tab="input">Memo Details</button><button class="tab-btn ${state.tab==='document'?'active':''}" data-tab="document">Memo View</button><button class="tab-btn ${state.tab==='newDocument'?'active':''}" data-tab="newDocument">New Memo View</button></div></div><div id="acm-content"></div></div>`;
+      ROOT.querySelectorAll('.tab-btn').forEach(b => {
+        b.addEventListener('click', async () => { 
+          const targetTab = b.getAttribute('data-tab');
+          if (state.tab === 'input' && targetTab !== 'input' && state.isDirty) { const discard = await showModal("Unsaved Changes Detected", "You have entered or modified data that has not been submitted yet.\n\nPlease click \"Submit ✔\" to record your data, or click \"Discard Data\" to abandon your recent changes.", "unsaved"); if (!discard) return; revertActiveRecord(); }
+          if (targetTab === 'input') state.refImgExpanded = false;
+          state.tab = targetTab; render(); 
+        });
       });
-    });
-    const content = document.getElementById('acm-content');
-    if (!state.loaded) { content.innerHTML = `<div class="empty-state">Loading records…</div>`; return; }
-    if (state.tab === 'dashboard') renderDashboard(content);
-    else if (state.tab === 'input') renderInput(content);
-    else if (state.tab === 'document') renderDocument(content);
-    else renderNewDocument(content);
+      const content = document.getElementById('acm-content');
+      if (!state.loaded) { content.innerHTML = `<div class="empty-state">Loading records…</div>`; return; }
+      if (state.tab === 'dashboard') renderDashboard(content);
+      else if (state.tab === 'input') renderInput(content);
+      else if (state.tab === 'document') renderDocument(content);
+      else renderNewDocument(content);
+    } catch (err) {
+      console.error('Render error:', err);
+      ROOT.innerHTML = `<div class="wrap"><div class="table-panel"><div class="empty-state" style="color:#dc2626">Unable to render view: ${escHtml(err && err.message ? err.message : String(err))}</div></div></div>`;
+    }
   }
 
   render();
