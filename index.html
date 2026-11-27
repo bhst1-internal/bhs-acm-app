@@ -315,6 +315,42 @@
     body,html{margin:0;padding:0;background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     #acm-root{background:#fff!important;min-height:0!important}
     #acm-root .topbar,#acm-root .doc-toolbar,#acm-modal-overlay,#acm-lightbox-overlay,#acm-update-banner,#acm-exit-overlay,#acm-exit-toast{display:none!important}
+    #acm-root .wrap{padding:0!important;margin:0!important;max-width:none!important}
+    #acm-root .doc-scroll,#acm-root .newdoc-scroll{padding:0!important;background:transparent!important;overflow:visible!important;max-height:none!important;border-radius:0!important}
+    #acm-root .newdoc-scale-wrap{width:100%!important;height:auto!important;margin:0!important}
+    #acm-root .doc-page{box-shadow:none!important;margin:0!important;padding:0!important;page-break-after:avoid}
+    #acm-root .newdoc-page{width:100%!important;min-height:0!important;box-shadow:none!important;margin:0!important;padding:0!important;transform:none!important}
+    #acm-root .nd-sec{break-inside:avoid;page-break-inside:avoid}
+    #acm-root .doc-footer-code{position:fixed!important;bottom:5mm!important;right:10mm!important}
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+</head>
+<body>
+<div id="acm-root"></div>
+<script>
+(function () {
+  const ROOT = document.getElementById('acm-root');
+  const STORE_KEY = 'acm-records-v1';
+  const DELETE_QUEUE_KEY = 'acm-delete-queue-v1';
+  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypcK8NiSMvUzKLl1UyBm8Rhri_QC8GUWwaxRJOuxEgAjw68QP2MVIW_rTATMw31x1X/exec";
+
+  // IndexedDB Storage Engine (Offline-First Persistence with safe fallback)
+  const OfflineDB = (function () {
+    const DB_NAME = 'BHS_ACM_OfflineDB';
+    const DB_VERSION = 1;
+    let dbPromise = null;
+    function open() {
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve, reject) => {
+        try {
+          if (!window.indexedDB) return reject(new Error('IndexedDB unavailable'));
+          const req = indexedDB.open(DB_NAME, DB_VERSION);
+          req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains('records')) db.createObjectStore('records', { keyPath: 'createdAt' });
+            if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
           };
           req.onsuccess = (e) => resolve(e.target.result);
           req.onerror = (e) => reject(e.target.error);
