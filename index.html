@@ -79,7 +79,11 @@
   #acm-root .btn-export-excel:hover{background-color:#047857}
   #acm-root .btn-export-excel svg{width:16px;height:16px}
   #acm-root .sec{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:12px;transition:all .2s}
-  #acm-root .sec>.sec-title{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:10px}
+  #acm-root .sec>.sec-title,#acm-root .sec-header>.sec-title{font-size:.75rem;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--accent);margin-bottom:10px}
+  #acm-root .sec-header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+  #acm-root .sec-header>.sec-title{margin-bottom:0}
+  #acm-root .history-hint{font-size:.72rem;color:var(--text-sec);background:var(--input-bg);border:1px solid var(--line);border-radius:7px;padding:6px 10px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  #acm-root .history-hint.has-matches{background:#eff6ff;border-color:#bfdbfe;color:#1e40af}
   #acm-root .grid{display:grid;gap:10px}
   #acm-root .g2{grid-template-columns:1fr 1fr}
   #acm-root .g3{grid-template-columns:1fr 1fr 1fr}
@@ -155,6 +159,7 @@
     }
   }
 
+  // Personnel & Authorization Lists
   const CONF_PASS = {'Anisah':'134510','Azlan':'111306','Eylia':'131091','Fairus':'123092','Fariz':'134828','Hafizah':'134449','Khairoulnizam':'110143','Samsulnazri':'111289','Zahidah':'131530','Zulkiple':'133513'};
   const CONF_NAMES = Object.keys(CONF_PASS).sort();
   const TO_NAMES = [
@@ -175,6 +180,7 @@
   ].sort();
   const ISSUED_BY_NAMES = Array.from(new Set([...TECH_NAMES, ...TO_NAMES, ...CONF_NAMES])).sort();
 
+  // Classification, Urgency & Action Dictionaries
   const CATS = { opError:'Op.Error', stoppage:'Stoppage', damage:'Damage', noise:'Noise etc.', othersType1:'Others' };
   const CATS2 = { mech:'Mech.', elec:'Elec.', it:'I.T.', operation:'Operation', othersType2:'Others' };
   const URGENCY = { veryCritical:'Very Critical', within24hrs:'Within 24hrs', within2months:'Within 2 months', within1week:'Within 1 week' };
@@ -183,25 +189,27 @@
   const URGENCY_MS = { veryCritical: 4*3600000, within24hrs: 24*3600000, within1week: 7*86400000, within2months: 60*86400000 };
   const GROUP_OPTIONS = ['Shift A', 'Shift B', 'Shift C', 'Shift D', 'OH', 'Vendor'];
 
-  const TITLE_OPTIONS = [
+  const TITLE_OPTIONS = Array.from(new Set([
     'CONVEYOR BELT', 'BELT GUIDE', 'LOAD WHEEL', 'GUIDE WHEEL', 'FILLED PLATE', 'PULLEY/ROLLER', 'GEAR MOTOR', 
     'TIMING BELT', 'CHAIN', 'SPROCKET', 'SORTER TIGHTENER PULLEY (FDU)', 'SORTER TAKE UP PULLEY (FDU)', 
     'CAROUSEL DRIVESHAFT (FDU)', 'MOTOR (FDU)', 'W BEAM', 'MAIN BEAM', 'SIDE SPACER (HORIZONTAL)', 'REAR BEAM',  
-	'SORTER RAIL', 'SWIVEL BRACKET', 'COUPLING SPACER', 'SWIVEL BRACKET', 'SWIVEL BRACKET', 'CROSS MEMBER',
+    'SORTER RAIL', 'SWIVEL BRACKET', 'COUPLING SPACER', 'CROSS MEMBER',
     'SORTER IDLER BEARING', 'SPLIT PIN', 'SORTER CABLE', 'SORTER RETURN BELT WHEEL', 'SORTER CART', 'CROSS PIN', 
     'SORTER GENERATOR', 'JOINT BRACKET', 'CASTOR BRACKET', 'SIDE SPACER (VERTICAL)', 'KEY/NUT PLATE',
-	'BANKORAN BEARING', 'RUBBER BUMPER', 'GUIDE BEARING', 'MOTOR SIDE PLATE', 'MOTOR BASE PLATE', 
+    'BANKORAN BEARING', 'RUBBER BUMPER', 'GUIDE BEARING', 'MOTOR SIDE PLATE', 'MOTOR BASE PLATE', 
     'PLASTIC CAP (GUIDE BEARING)', 'SIDE FRAME/PLATE', 'FRONT FRAME/PLATE', 'BOLT/NUT/SCREW/BUSH/WASHER', 
-    'TIMING PULLEY', 'COVER', 'END CAP',  'POLYBAN ROPE', 'A/C SERVO MOTOR', 'BEARING UNIT',
-    'V BELT', 'WIRE ROPE', 'PLATE/L BAR/BRACKET',  'KEY BAR', 'BEARING ADAPTOR', 'GTU ROPE',
+    'TIMING PULLEY', 'COVER', 'END CAP', 'POLYBAN ROPE', 'A/C SERVO MOTOR', 'BEARING UNIT',
+    'V BELT', 'WIRE ROPE', 'PLATE/L BAR/BRACKET', 'KEY BAR', 'BEARING ADAPTOR', 'GTU ROPE',
     'CONVEYOR STAND', 'SLIDER BED', 'MAKE UP CHUTE STAND', 'MAKE UP CHUTE', 'JOINT SHAFT',
-	'SENSOR', 'A/C SERVO AMPLIFIER', 'V WHEEL BEARING', 'COMPRESSOR', 'FLEXIBLE TUBE', 'CONNECTOR'
-  ].sort();
+    'SENSOR', 'A/C SERVO AMPLIFIER', 'V WHEEL BEARING', 'COMPRESSOR', 'FLEXIBLE TUBE', 'CONNECTOR'
+  ])).sort();
 
+  // Close open dropdown menus when clicking outside
   document.addEventListener('click', () => {
     document.querySelectorAll('#acm-root .dd-menu.open').forEach(m => m.classList.remove('open'));
   });
 
+  // Custom Modal Dialog (replaces browser alert/confirm/prompt)
   function showModal(title, msg, type = 'alert', errorMode = false, inputType = 'text') {
     return new Promise(resolve => {
       let overlay = document.getElementById('acm-modal-overlay');
@@ -239,13 +247,25 @@
   let state = { tab: 'dashboard', records: [], activeId: null, cleanActiveRecord: null, isDirty: false, loaded: false, showErrors: false, dashStart: null, dashEnd: null, partsChartMode: 'parts' };
   const checkReq = v => v != null && String(v).trim() !== '';
 
+  // Storage Persistence: window.storage with localStorage fallback
   async function loadRecords() {
-    try { if (window.storage) { const res = await window.storage.get(STORE_KEY, false); if (res && res.value) state.records = JSON.parse(res.value); } } catch (e) { state.records = []; }
+    try {
+      if (window.storage) {
+        const res = await window.storage.get(STORE_KEY, false);
+        if (res && res.value) state.records = JSON.parse(res.value);
+      } else if (window.localStorage) {
+        const raw = window.localStorage.getItem(STORE_KEY);
+        if (raw) state.records = JSON.parse(raw);
+      }
+    } catch (e) {
+      state.records = [];
+    }
+
     window.syncGoogleSheets = function(googleData) {
       const cleanDate = iso => { if (!iso || typeof iso !== 'string' || !iso.includes('T')) return iso; const d = new Date(iso); if (isNaN(d)) return iso; return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
       const cleanTime = iso => (!iso || typeof iso !== 'string' || !iso.includes('T')) ? iso : new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
       let validData = [];
-      googleData.forEach(g => {
+      (Array.isArray(googleData) ? googleData : []).forEach(g => {
         if (!g.createdAt || String(g.createdAt).trim() === '') return;
         g.happeningDate = cleanDate(g.happeningDate); g.actionDate = cleanDate(g.actionDate); g.spRequestDate = cleanDate(g.spRequestDate); g.spDeliveryDate = cleanDate(g.spDeliveryDate);
         g.timeOfHappening = cleanTime(g.timeOfHappening); g.actStartTime = cleanTime(g.actStartTime); g.actEndTime = cleanTime(g.actEndTime);
@@ -258,17 +278,29 @@
       const localOffline = state.records.filter(r => !r.isDraft && !cloudIds.has(String(r.createdAt)));
       state.records = [...drafts, ...localOffline, ...validData].sort((a,b) => b.createdAt - a.createdAt);
       state.loaded = true;
+      saveRecords();
       const validOrActive = state.records.filter(r => !r.isDraft || String(r.createdAt) === String(state.activeId));
       if (validOrActive.length > 0 && !state.activeId) state.activeId = validOrActive[0].createdAt;
       render();
     };
+
     const script = document.createElement('script');
     script.src = WEB_APP_URL + "?action=read&callback=syncGoogleSheets";
     document.body.appendChild(script);
     state.loaded = true; render();
   }
 
-  async function saveRecords() { try { if(window.storage) await window.storage.set(STORE_KEY, JSON.stringify(state.records), false); } catch(e){} }
+  async function saveRecords() {
+    try {
+      const serialized = JSON.stringify(state.records);
+      if (window.storage) {
+        await window.storage.set(STORE_KEY, serialized, false);
+      } else if (window.localStorage) {
+        window.localStorage.setItem(STORE_KEY, serialized);
+      }
+    } catch (e) {}
+  }
+
   function revertActiveRecord() { if(state.cleanActiveRecord && state.activeId) { const idx = state.records.findIndex(x => String(x.createdAt) === String(state.activeId)); if (idx !== -1) { state.records[idx] = JSON.parse(JSON.stringify(state.cleanActiveRecord)); saveRecords(); } } state.isDirty = false; }
   
   function getNextReportNo() {
@@ -279,12 +311,28 @@
   }
 
   function fmtDate(r) { if (r.happeningDate) { const p = String(r.happeningDate).substring(0, 10).split('-'); if (p.length === 3) return `${p[2]}/${p[1]}/${p[0].slice(-2)}`; } return (!r.dd && !r.mm && !r.yy) ? '—' : `${(r.dd||'--').padStart(2,'0')}/${(r.mm||'--').padStart(2,'0')}/${r.yy||'--'}`; }
-  function getTs(iso) { if (iso && typeof iso === 'string') { const p = iso.split('-'); if (p.length === 3) return new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2])).getTime(); } return null; }
-  function getOldTs(dd, mm, yy) { return (!dd || !mm || !yy) ? null : new Date(parseInt(yy.length === 2 ? ('20' + yy) : yy), parseInt(mm)-1, parseInt(dd)).getTime(); }
+  function getTs(iso) { if (iso && typeof iso === 'string') { const p = iso.split('-'); if (p.length === 3) return new Date(parseInt(p[0], 10), parseInt(p[1], 10)-1, parseInt(p[2], 10)).getTime(); } return null; }
+  function getOldTs(dd, mm, yy) { return (!dd || !mm || !yy) ? null : new Date(parseInt(String(yy).length === 2 ? ('20' + yy) : yy, 10), parseInt(mm, 10)-1, parseInt(dd, 10)).getTime(); }
   function getExactTs(dateStr, oldDd, oldMm, oldYy, timeStr) {
     let t = getTs(dateStr) || getOldTs(oldDd, oldMm, oldYy);
     if (t && timeStr && typeof timeStr === 'string') { const parts = timeStr.split(':'); if (parts.length >= 2) t += ((parseInt(parts[0], 10) || 0) * 3600000) + ((parseInt(parts[1], 10) || 0) * 60000); }
     return t;
+  }
+
+  // Normalize either ISO date or legacy DD/MM/YY fields into YYYY-MM-DD
+  function toIsoDateStr(dateStr, oldDd, oldMm, oldYy) {
+    if (dateStr && typeof dateStr === 'string') {
+      const m = dateStr.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+    }
+    if (checkReq(oldDd) && checkReq(oldMm) && checkReq(oldYy)) {
+      const yStr = String(oldYy).trim();
+      const yyyy = yStr.length === 2 ? ('20' + yStr) : yStr.padStart(4, '0');
+      const mm = String(oldMm).trim().padStart(2, '0');
+      const dd = String(oldDd).trim().padStart(2, '0');
+      if (!isNaN(getTs(`${yyyy}-${mm}-${dd}`))) return `${yyyy}-${mm}-${dd}`;
+    }
+    return '';
   }
 
   function getStatus(r) {
@@ -301,6 +349,143 @@
     return (confirmValid || hasActionDate || r.actionCat || r.resultCat || r.doneByName || r.checkByName) ? 'progress' : 'open';
   }
 
+  // =========================================================
+  // AUTO-POPULATED "HISTORY (LAST 3 CHANGING DATES)" HELPERS
+  // =========================================================
+  const normKey = v => String(v || '').trim().toUpperCase();
+
+  function getRecordChangeIso(rec) {
+    return toIsoDateStr(rec.actionDate, rec.actDd, rec.actMm, rec.actYy) || toIsoDateStr(rec.happeningDate, rec.dd, rec.mm, rec.yy);
+  }
+
+  function buildHistoryRemark(rec) {
+    const parts = [];
+    const rpt = String(rec.reportNo || '').trim();
+    if (rpt) parts.push(`[${rpt}]`);
+
+    const actLabel = rec.actionCat && ACTION_CAT[rec.actionCat] ? ACTION_CAT[rec.actionCat] : '';
+    const rawDesc = [rec.actionDetail, rec.reasonDetail, rec.resultDetail].find(v => checkReq(v)) || '';
+    const cleanDesc = rawDesc.replace(/\s+/g, ' ').trim();
+    const shortDesc = cleanDesc.length > 65 ? (cleanDesc.slice(0, 64).trimEnd() + '…') : cleanDesc;
+
+    if (actLabel && shortDesc) parts.push(`${actLabel}: ${shortDesc}`);
+    else if (actLabel) parts.push(actLabel);
+    else if (shortDesc) parts.push(shortDesc);
+
+    let outcomeTag = '';
+    if (rec.resultCat && RESULT_CAT[rec.resultCat]) {
+      outcomeTag = `(${RESULT_CAT[rec.resultCat]})`;
+    } else {
+      const st = getStatus(rec);
+      const statusLabel = st === 'done' ? 'Completed' : (st === 'progress' ? 'In progress' : 'Open');
+      outcomeTag = `(${statusLabel})`;
+    }
+    if (outcomeTag) parts.push(outcomeTag);
+
+    return parts.join(' ');
+  }
+
+  function findMatchingHistory(r) {
+    const tKey = normKey(r.title);
+    const lKey = normKey(r.lineEquipment);
+    const nKey = normKey(r.equipNo);
+    const hasCriteria = Boolean(tKey && lKey && nKey);
+
+    if (!hasCriteria) {
+      return { hasCriteria: false, matches: [] };
+    }
+
+    const activeDateIso = toIsoDateStr(r.happeningDate, r.dd, r.mm, r.yy);
+    const activeDateTs = activeDateIso ? getTs(activeDateIso) : null;
+    const activeEndOfDay = activeDateTs !== null ? (activeDateTs + 86399999) : null;
+    const activeCreated = Number(r.createdAt) || 0;
+
+    const matched = state.records
+      .filter(rec => {
+        if (!rec || rec.isDraft) return false;
+        if (String(rec.createdAt) === String(r.createdAt)) return false;
+        if (normKey(rec.title) !== tKey) return false;
+        if (normKey(rec.lineEquipment) !== lKey) return false;
+        if (normKey(rec.equipNo) !== nKey) return false;
+
+        // Only include previous records if active record has a date set
+        if (activeDateTs !== null) {
+          const recDateIso = getRecordChangeIso(rec);
+          const recDateTs = recDateIso ? getTs(recDateIso) : null;
+          const recCreated = Number(rec.createdAt) || 0;
+
+          if (recDateTs !== null) {
+            if (recDateTs > activeDateTs) return false;
+            if (recDateTs === activeDateTs && !(recCreated < activeCreated)) return false;
+          } else {
+            if (recCreated > activeEndOfDay || !(recCreated < activeCreated)) return false;
+          }
+        }
+        return true;
+      })
+      .map(rec => {
+        const dateIso = getRecordChangeIso(rec);
+        const sortTs = dateIso ? (getTs(dateIso) || 0) : (Number(rec.createdAt) || 0);
+        return {
+          date: dateIso,
+          remark: buildHistoryRemark(rec),
+          sortTs,
+          createdAt: Number(rec.createdAt) || 0
+        };
+      })
+      .sort((a, b) => (b.sortTs - a.sortTs) || (b.createdAt - a.createdAt))
+      .slice(0, 3);
+
+    return { hasCriteria: true, matches: matched };
+  }
+
+  function syncAutoHistory(r, forceOverwrite = false) {
+    r.history = ensureRows(r.history, 3, () => ({ date: '', remark: '' }));
+    const { hasCriteria, matches } = findMatchingHistory(r);
+
+    if (matches.length > 0) {
+      r.history = Array.from({ length: 3 }, (_, i) =>
+        matches[i] ? { date: matches[i].date, remark: matches[i].remark } : { date: '', remark: '' }
+      );
+      return { hasCriteria, matchedCount: matches.length, updated: true };
+    }
+
+    if (forceOverwrite) {
+      r.history = Array.from({ length: 3 }, () => ({ date: '', remark: '' }));
+      return { hasCriteria, matchedCount: 0, updated: true };
+    }
+
+    return { hasCriteria, matchedCount: 0, updated: false };
+  }
+
+  function getHistoryHintText(info) {
+    if (!info.hasCriteria) {
+      return 'Select Title, Line/Equipment, and No. to auto-populate up to 3 matching previous records.';
+    }
+    if (info.matchedCount > 0) {
+      return `Auto-populated ${info.matchedCount} matching previous record${info.matchedCount === 1 ? '' : 's'} (same Title, Line/Equipment & No.). Dates and remarks remain editable.`;
+    }
+    return 'No previous matching records found for this Title, Line/Equipment, and No. You can enter history manually.';
+  }
+
+  function updateHistoryDom(container, r, info) {
+    const rows = ensureRows(r.history, 3, () => ({ date: '', remark: '' }));
+    for (let i = 0; i < 3; i++) {
+      const dateEl = container.querySelector(`[data-path="history.${i}.date"]`);
+      const remarkEl = container.querySelector(`[data-path="history.${i}.remark"]`);
+      if (dateEl) dateEl.value = rows[i].date || '';
+      if (remarkEl) remarkEl.value = rows[i].remark || '';
+    }
+    const hintEl = container.querySelector('#acm-history-hint');
+    if (hintEl) {
+      hintEl.textContent = getHistoryHintText(info);
+      hintEl.classList.toggle('has-matches', info.matchedCount > 0);
+    }
+  }
+
+  // =========================================================
+  // DASHBOARD CHARTS & KPI COMPUTATION
+  // =========================================================
   let timelineChart = null, categoryChart = null, urgencyChart = null, partsChart = null, maintChart = null;
   function ensureChartJs(cb) {
     if (window.Chart && window.html2canvas) return cb();
@@ -674,7 +859,7 @@
     const btn = document.getElementById(btnId);
     if (!btn) return;
     btn.addEventListener('click', () => {
-      if (typeof html2canvas === 'undefined') { alert("Export library is loading. Try again in a few seconds."); return; }
+      if (typeof html2canvas === 'undefined') { showModal("Notice", "Export library is loading. Try again in a few seconds.", "alert"); return; }
       const panel = targetId ? document.getElementById(targetId) : btn.closest('.panel');
       
       const toolbar = panel.querySelector('.fv-toolbar-actions');
@@ -1315,6 +1500,9 @@
     });
   }
 
+  // =========================================================
+  // MEMO DETAILS INPUT FORM HELPERS & RENDERING
+  // =========================================================
   function escAttr(v) { return String(v == null ? '' : v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function checkbox(lbl, chk, path) { return `<label class="chk"><input type="checkbox" data-path="${path}" ${chk?'checked':''}/> ${lbl}</label>`; }
   function radio(nm, lbl, val, chk, path) { return `<label class="rad"><input type="radio" name="${nm}" data-path="${path}" value="${val}" ${chk?'checked':''}/> ${lbl}</label>`; }
@@ -1350,10 +1538,13 @@
   function renderInput(container) {
     let r = getActive();
     if (!r) { r = blankRecord(); r.reportNo = getNextReportNo(); state.records.unshift(r); state.activeId = r.createdAt; state.isDirty = false; }
-    if (!state.isDirty) state.cleanActiveRecord = JSON.parse(JSON.stringify(r));
     r.monitoring = ensureRows(r.monitoring, 2, () => ({d1:'',b1:'',r1:'',d2:'',b2:'',r2:''}));
     r.history = ensureRows(r.history, 3, () => ({date:'',remark:''}));
     r.parts = ensureRows(r.parts, 9, () => ({item:'',spec:'',part:'',qty:'',dismantle:'',sap:''}));
+
+    // Auto-populate matching history on open/render while preserving manual entries when no matches exist
+    const historySyncInfo = syncAutoHistory(r, false);
+    if (!state.isDirty) state.cleanActiveRecord = JSON.parse(JSON.stringify(r));
 
     const options = state.records.slice().sort((a,b)=>b.createdAt-a.createdAt).map(x => `<option value="${x.createdAt}" ${String(x.createdAt)===String(r.createdAt)?'selected':''}>${x.isDraft?'[Draft] ':''}BHS/ACM ${x.reportNo||'N/A'}</option>`).join('');
     let igBase = r.issuedGroup||'', igVendor = ''; if(igBase.toUpperCase().startsWith('VENDOR')){ igBase = 'Vendor'; igVendor = (r.issuedGroup||'').substring(6).replace(/^:\s*/,'').trim(); }
@@ -1361,7 +1552,7 @@
     const currentLine = r.lineEquipment || '', noOptions = (currentLine && EQUIP_DB[currentLine]) ? Object.keys(EQUIP_DB[currentLine]).sort() : [];
     if(currentLine) { noOptions.push('OTHERS'); noOptions.push('CART'); }
 
-    container.innerHTML = `<div class="form-shell"><div class="form-toolbar"><div class="rec-select"><span style="font-weight:700">Report No.:</span><select class="recpick" id="acm-recpick">${options}</select></div><div class="btn-row"><button class="btn btn-ghost" id="acm-new-btn">✚ Add New Memo</button><button class="btn btn-danger" id="acm-del-btn">Delete ✘</button><button class="btn btn-primary" id="acm-submit-btn" style="background:var(--ok)">Submit ✔</button><button class="btn btn-primary" id="acm-view-btn">View Memo ➜</button></div></div><div class="sec"><div class="sec-title">Notification &amp; Work Order</div><div class="grid g5">${field('Notification No.','notificationNo',r.notificationNo)}${field('Work Order No.','workOrderNo',r.workOrderNo)}${selectField('Maintenance Type','maintenanceType',r.maintenanceType,['Breakdown','Corrective','Preventive'])}${field('Report No. (BHS/ACM)','reportNo',r.reportNo,'text','readonly style="background:var(--line);cursor:not-allowed"')}${field('Time of Happening','timeOfHappening',r.timeOfHappening,'time')}</div><div class="grid g4" style="margin-top:10px">${field('Date','happeningDate',r.happeningDate,'date')}${selectField('Issued By','issuedBy',r.issuedBy,ISSUED_BY_NAMES)}${groupField('Group','issuedGroup',igBase,igVendor)}${field('Checked (TA/ST)','checkedBy',r.checkedBy)}</div></div><div class="sec"><div class="sec-title">Title &amp; Equipment</div><div class="grid g2">${searchableSelectField('Title', 'title', r.title, TITLE_OPTIONS, 'title-list')}${field('Conveyor/Item','conveyorItem',r.conveyorItem,'text','readonly style="background:var(--line);cursor:not-allowed"')}</div><div class="grid g2" style="margin-top:10px">${searchableSelectField('Line/Equipment','lineEquipment',r.lineEquipment,Object.keys(EQUIP_DB).sort(),'line-list')}${searchableSelectField('No.','equipNo',r.equipNo,noOptions,'no-list')}</div></div><div class="sec" id="sec-category"><div class="sec-title">Category &amp; Type of Error</div><div class="check-row">${Object.entries(CATS).map(([k,l])=>checkbox(l,(r.cat1||{})[k],'cat1.'+k)).join('')}</div><div class="check-row" style="margin-top:8px">${Object.entries(CATS2).map(([k,l])=>checkbox(l,(r.cat2||{})[k],'cat2.'+k)).join('')}</div></div><div class="sec" id="sec-urgency"><div class="sec-title">Degree of Urgency</div><div class="radio-row">${Object.entries(URGENCY).map(([k,l])=>radio('urgency',l,k,r.urgency===k,'urgency')).join('')}</div></div><div class="sec"><div class="sec-title">Reason / Detail</div>${field('Describe the reason and detail of the fault','reasonDetail',r.reasonDetail,'textarea')}</div><div class="sec"><div class="sec-title">Monitoring Status (Progress)</div><table class="editrows"><thead><tr><th>Insp. Date</th><th>By</th><th>Result</th><th>Insp. Date</th><th>By</th><th>Result</th></tr></thead><tbody>${(r.monitoring||[]).map((m,i)=>`<tr><td><input type="date" data-path="monitoring.${i}.d1" value="${m.d1||''}"/></td><td><input type="text" data-path="monitoring.${i}.b1" value="${escAttr(m.b1)}"/></td><td><input type="text" data-path="monitoring.${i}.r1" value="${escAttr(m.r1)}"/></td><td><input type="date" data-path="monitoring.${i}.d2" value="${m.d2||''}"/></td><td><input type="text" data-path="monitoring.${i}.b2" value="${escAttr(m.b2)}"/></td><td><input type="text" data-path="monitoring.${i}.r2" value="${escAttr(m.r2)}"/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Spare Part Status</div><div class="hint" style="font-size:.65rem;color:var(--text-sec);margin-bottom:6px">Row 1</div><div class="grid g5">${field('Stock:','spStock',r.spStock)}${field('Stock Qty','spStockQty',r.spStockQty)}${field('Stock: Critical','spStockCritical',r.spStockCritical)}${field('Checked by','spCheckedBy',r.spCheckedBy)}${field('Qty','spQty',r.spQty)}</div><div class="hint" style="font-size:.65rem;color:var(--text-sec);margin:10px 0 6px">Row 2</div><div class="grid g5">${field('Location','spLocation',r.spLocation)}${field('Check by','spCheckBy',r.spCheckBy)}${field('Request date','spRequestDate',r.spRequestDate,'date')}${field('Delivery date','spDeliveryDate',r.spDeliveryDate,'date')}${field('Location (2)','spLocation2',r.spLocation2)}</div></div><div class="sec"><div class="sec-title">Request of Action</div>${field('Request of action','requestOfAction',r.requestOfAction,'textarea')}</div><div class="sec"><div class="sec-title">Action</div><div class="grid g3">${field('Date','actionDate',r.actionDate,'date')}${multiSelectField('Done By','actDoneBy',r.actDoneBy,TECH_NAMES)}${groupField('Group','actGroup',agBase,agVendor)}</div><div class="grid g2" style="margin-top:10px">${field('Start time','actStartTime',r.actStartTime,'time')}${field('End time','actEndTime',r.actEndTime,'time')}</div><div style="margin-top:10px"><div class="sec-title" style="font-size:.65rem">Category</div><div class="radio-row">${Object.entries(ACTION_CAT).map(([k,l])=>radio('actionCat',l,k,r.actionCat===k,'actionCat')).join('')}</div></div><div style="margin-top:10px">${field('Detail','actionDetail',r.actionDetail,'textarea')}</div></div><div class="sec"><div class="sec-title">History (Last 3 Changing Dates)</div><table class="editrows"><thead><tr><th>#</th><th>Date</th><th>Remark</th></tr></thead><tbody>${(r.history||[]).map((h,i)=>`<tr><td style="width:30px">${i+1})</td><td><input type="date" data-path="history.${i}.date" value="${h.date||''}"/></td><td><input type="text" data-path="history.${i}.remark" value="${escAttr(h.remark)}"/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Result</div><div class="radio-row">${Object.entries(RESULT_CAT).map(([k,l])=>radio('resultCat',l,k,r.resultCat===k,'resultCat')).join('')}</div><div class="grid g4" style="margin-top:10px">${field('Speed (m/min)','paramSpeed',r.paramSpeed)}${field('Temp (°C)','paramTemp',r.paramTemp)}${field('Current (A)','paramCurrent',r.paramCurrent)}${field('Voltage (V)','paramVoltage',r.paramVoltage)}</div><div style="margin-top:10px">${field('Detail / Status','resultDetail',r.resultDetail,'textarea')}</div></div><div class="sec"><div class="sec-title">Parts Records</div><table class="editrows"><thead><tr><th>No.</th><th>Item/Equipment name</th><th>Specification</th><th>Part</th><th>Qty</th><th>Dismantle part status</th><th>SAP No / Others</th></tr></thead><tbody>${(r.parts||[]).map((p,i)=>`<tr><td style="width:30px">${i+1}</td><td><input type="text" data-path="parts.${i}.item" value="${escAttr(p.item)}"/></td><td><input type="text" data-path="parts.${i}.spec" value="${escAttr(p.spec)}"/></td><td><input type="text" data-path="parts.${i}.part" value="${escAttr(p.part)}"/></td><td><input type="text" data-path="parts.${i}.qty" value="${escAttr(p.qty)}"/></td><td><input type="text" data-path="parts.${i}.dismantle" value="${escAttr(p.dismantle)}"/></td><td><input type="text" data-path="parts.${i}.sap" value="${escAttr(p.sap)}"/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Completion Checklist</div><div class="check-row">${checkbox('Create Notification',(r.flags||{}).createNotification,'flags.createNotification')}${checkbox('Create Work Order',(r.flags||{}).createWorkOrder,'flags.createWorkOrder')}${checkbox('Release Work Order',(r.flags||{}).releaseWorkOrder,'flags.releaseWorkOrder')}${checkbox('GMPS',(r.flags||{}).gmps,'flags.gmps')}</div><div class="check-row" style="margin-top:8px">${checkbox('Time Confirmation',(r.flags||{}).timeConfirmation,'flags.timeConfirmation')}${checkbox('TECO',(r.flags||{}).teco,'flags.teco')}${checkbox('Business Completion',(r.flags||{}).businessCompletion,'flags.businessCompletion')}</div></div><div class="sec"><div class="sec-title">Sign-off</div><div class="grid g3">${multiSelectField('Done By (TECH)','doneByName',r.doneByName,TECH_NAMES,true)}${selectField('Check By (TO)','checkByName',r.checkByName,TO_NAMES)}${selectField('Confirmed By (TE/E/SE)','confirmedByName',r.confirmedByName,CONF_NAMES)}</div></div></div>`;
+    container.innerHTML = `<div class="form-shell"><div class="form-toolbar"><div class="rec-select"><span style="font-weight:700">Report No.:</span><select class="recpick" id="acm-recpick">${options}</select></div><div class="btn-row"><button class="btn btn-ghost" id="acm-new-btn">✚ Add New Memo</button><button class="btn btn-danger" id="acm-del-btn">Delete ✘</button><button class="btn btn-primary" id="acm-submit-btn" style="background:var(--ok)">Submit ✔</button><button class="btn btn-primary" id="acm-view-btn">View Memo ➜</button></div></div><div class="sec"><div class="sec-title">Notification &amp; Work Order</div><div class="grid g5">${field('Notification No.','notificationNo',r.notificationNo)}${field('Work Order No.','workOrderNo',r.workOrderNo)}${selectField('Maintenance Type','maintenanceType',r.maintenanceType,['Breakdown','Corrective','Preventive'])}${field('Report No. (BHS/ACM)','reportNo',r.reportNo,'text','readonly style="background:var(--line);cursor:not-allowed"')}${field('Time of Happening','timeOfHappening',r.timeOfHappening,'time')}</div><div class="grid g4" style="margin-top:10px">${field('Date','happeningDate',r.happeningDate,'date')}${selectField('Issued By','issuedBy',r.issuedBy,ISSUED_BY_NAMES)}${groupField('Group','issuedGroup',igBase,igVendor)}${field('Checked (TA/ST)','checkedBy',r.checkedBy)}</div></div><div class="sec"><div class="sec-title">Title &amp; Equipment</div><div class="grid g2">${searchableSelectField('Title', 'title', r.title, TITLE_OPTIONS, 'title-list')}${field('Conveyor/Item','conveyorItem',r.conveyorItem,'text','readonly style="background:var(--line);cursor:not-allowed"')}</div><div class="grid g2" style="margin-top:10px">${searchableSelectField('Line/Equipment','lineEquipment',r.lineEquipment,Object.keys(EQUIP_DB).sort(),'line-list')}${searchableSelectField('No.','equipNo',r.equipNo,noOptions,'no-list')}</div></div><div class="sec" id="sec-category"><div class="sec-title">Category &amp; Type of Error</div><div class="check-row">${Object.entries(CATS).map(([k,l])=>checkbox(l,(r.cat1||{})[k],'cat1.'+k)).join('')}</div><div class="check-row" style="margin-top:8px">${Object.entries(CATS2).map(([k,l])=>checkbox(l,(r.cat2||{})[k],'cat2.'+k)).join('')}</div></div><div class="sec" id="sec-urgency"><div class="sec-title">Degree of Urgency</div><div class="radio-row">${Object.entries(URGENCY).map(([k,l])=>radio('urgency',l,k,r.urgency===k,'urgency')).join('')}</div></div><div class="sec"><div class="sec-title">Reason / Detail</div>${field('Describe the reason and detail of the fault','reasonDetail',r.reasonDetail,'textarea')}</div><div class="sec"><div class="sec-title">Monitoring Status (Progress)</div><table class="editrows"><thead><tr><th>Insp. Date</th><th>By</th><th>Result</th><th>Insp. Date</th><th>By</th><th>Result</th></tr></thead><tbody>${(r.monitoring||[]).map((m,i)=>`<tr><td><input type="date" data-path="monitoring.${i}.d1" value="${m.d1||''}"/></td><td><input type="text" data-path="monitoring.${i}.b1" value="${escAttr(m.b1)}"/></td><td><input type="text" data-path="monitoring.${i}.r1" value="${escAttr(m.r1)}"/></td><td><input type="date" data-path="monitoring.${i}.d2" value="${m.d2||''}"/></td><td><input type="text" data-path="monitoring.${i}.b2" value="${escAttr(m.b2)}"/></td><td><input type="text" data-path="monitoring.${i}.r2" value="${escAttr(m.r2)}"/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Spare Part Status</div><div class="hint" style="font-size:.65rem;color:var(--text-sec);margin-bottom:6px">Row 1</div><div class="grid g5">${field('Stock:','spStock',r.spStock)}${field('Stock Qty','spStockQty',r.spStockQty)}${field('Stock: Critical','spStockCritical',r.spStockCritical)}${field('Checked by','spCheckedBy',r.spCheckedBy)}${field('Qty','spQty',r.spQty)}</div><div class="hint" style="font-size:.65rem;color:var(--text-sec);margin:10px 0 6px">Row 2</div><div class="grid g5">${field('Location','spLocation',r.spLocation)}${field('Check by','spCheckBy',r.spCheckBy)}${field('Request date','spRequestDate',r.spRequestDate,'date')}${field('Delivery date','spDeliveryDate',r.spDeliveryDate,'date')}${field('Location (2)','spLocation2',r.spLocation2)}</div></div><div class="sec"><div class="sec-title">Request of Action</div>${field('Request of action','requestOfAction',r.requestOfAction,'textarea')}</div><div class="sec"><div class="sec-title">Action</div><div class="grid g3">${field('Date','actionDate',r.actionDate,'date')}${multiSelectField('Done By','actDoneBy',r.actDoneBy,TECH_NAMES)}${groupField('Group','actGroup',agBase,agVendor)}</div><div class="grid g2" style="margin-top:10px">${field('Start time','actStartTime',r.actStartTime,'time')}${field('End time','actEndTime',r.actEndTime,'time')}</div><div style="margin-top:10px"><div class="sec-title" style="font-size:.65rem">Category</div><div class="radio-row">${Object.entries(ACTION_CAT).map(([k,l])=>radio('actionCat',l,k,r.actionCat===k,'actionCat')).join('')}</div></div><div style="margin-top:10px">${field('Detail','actionDetail',r.actionDetail,'textarea')}</div></div><div class="sec" id="sec-history"><div class="sec-header"><div class="sec-title">History (Last 3 Changing Dates)</div><button type="button" class="btn btn-ghost" id="acm-history-refresh-btn" style="padding:4px 10px;font-size:.72rem" title="Re-populate from previous records matching Title, Line/Equipment, and No.">↻ Refresh from Records</button></div><div id="acm-history-hint" class="history-hint ${historySyncInfo.matchedCount > 0 ? 'has-matches' : ''}">${esc(getHistoryHintText(historySyncInfo))}</div><table class="editrows"><thead><tr><th>#</th><th style="width:155px">Date</th><th>Remark</th></tr></thead><tbody>${(r.history||[]).map((h,i)=>`<tr><td style="width:30px">${i+1})</td><td><input type="date" data-path="history.${i}.date" value="${escAttr(h.date)}"/></td><td><input type="text" data-path="history.${i}.remark" value="${escAttr(h.remark)}" placeholder="Auto-filled from previous matching memos or enter manually..."/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Result</div><div class="radio-row">${Object.entries(RESULT_CAT).map(([k,l])=>radio('resultCat',l,k,r.resultCat===k,'resultCat')).join('')}</div><div class="grid g4" style="margin-top:10px">${field('Speed (m/min)','paramSpeed',r.paramSpeed)}${field('Temp (°C)','paramTemp',r.paramTemp)}${field('Current (A)','paramCurrent',r.paramCurrent)}${field('Voltage (V)','paramVoltage',r.paramVoltage)}</div><div style="margin-top:10px">${field('Detail / Status','resultDetail',r.resultDetail,'textarea')}</div></div><div class="sec"><div class="sec-title">Parts Records</div><table class="editrows"><thead><tr><th>No.</th><th>Item/Equipment name</th><th>Specification</th><th>Part</th><th>Qty</th><th>Dismantle part status</th><th>SAP No / Others</th></tr></thead><tbody>${(r.parts||[]).map((p,i)=>`<tr><td style="width:30px">${i+1}</td><td><input type="text" data-path="parts.${i}.item" value="${escAttr(p.item)}"/></td><td><input type="text" data-path="parts.${i}.spec" value="${escAttr(p.spec)}"/></td><td><input type="text" data-path="parts.${i}.part" value="${escAttr(p.part)}"/></td><td><input type="text" data-path="parts.${i}.qty" value="${escAttr(p.qty)}"/></td><td><input type="text" data-path="parts.${i}.dismantle" value="${escAttr(p.dismantle)}"/></td><td><input type="text" data-path="parts.${i}.sap" value="${escAttr(p.sap)}"/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Completion Checklist</div><div class="check-row">${checkbox('Create Notification',(r.flags||{}).createNotification,'flags.createNotification')}${checkbox('Create Work Order',(r.flags||{}).createWorkOrder,'flags.createWorkOrder')}${checkbox('Release Work Order',(r.flags||{}).releaseWorkOrder,'flags.releaseWorkOrder')}${checkbox('GMPS',(r.flags||{}).gmps,'flags.gmps')}</div><div class="check-row" style="margin-top:8px">${checkbox('Time Confirmation',(r.flags||{}).timeConfirmation,'flags.timeConfirmation')}${checkbox('TECO',(r.flags||{}).teco,'flags.teco')}${checkbox('Business Completion',(r.flags||{}).businessCompletion,'flags.businessCompletion')}</div></div><div class="sec"><div class="sec-title">Sign-off</div><div class="grid g3">${multiSelectField('Done By (TECH)','doneByName',r.doneByName,TECH_NAMES,true)}${selectField('Check By (TO)','checkByName',r.checkByName,TO_NAMES)}${selectField('Confirmed By (TE/E/SE)','confirmedByName',r.confirmedByName,CONF_NAMES)}</div></div></div>`;
 
     updateHighlights(container, r);
     const wrapAction = async () => { if(state.isDirty){ const discard = await showModal("Unsaved Changes Detected", "You have entered or modified data that has not been submitted yet.\n\nPlease click \"Submit ✔\" to record your data, or click \"Discard Data\" to abandon your recent changes.", "unsaved"); if(!discard) return false; revertActiveRecord(); } return true; };
@@ -1377,6 +1568,14 @@
       } else if(pass !== null) await showModal("Error", "Incorrect password. Deletion cancelled.", "alert", true);
     });
     container.querySelector('#acm-view-btn').addEventListener('click', async () => { if(await wrapAction()){ state.tab = 'document'; render(); } });
+
+    // Force-refresh History (Last 3 Changing Dates) from matching records
+    container.querySelector('#acm-history-refresh-btn').addEventListener('click', () => {
+      const info = syncAutoHistory(r, true);
+      updateHistoryDom(container, r, info);
+      state.isDirty = true;
+      saveRecords();
+    });
     
     container.querySelector('#acm-submit-btn').addEventListener('click', async () => {
       state.showErrors = true; let errs = [];
@@ -1401,6 +1600,7 @@
       }
     });
 
+    // Multi-select Technician dropdowns (Action -> Done By & Sign-off -> Done By (TECH))
     container.querySelectorAll('.multi-dd').forEach(wrapper => {
       const path = wrapper.getAttribute('data-multi-path');
       const btn = wrapper.querySelector('.dd-btn');
@@ -1487,6 +1687,13 @@
         const convEl = container.querySelector('[data-path="conveyorItem"]');
         if(convEl) convEl.value = r.conveyorItem;
       }
+
+      // Live in-place refresh of History (Last 3 Changing Dates) when matching keys or date change
+      if (path === 'title' || path === 'lineEquipment' || path === 'equipNo' || path === 'happeningDate') {
+        const info = syncAutoHistory(r, true);
+        updateHistoryDom(container, r, info);
+      }
+
       saveRecords(); updateHighlights(container, r);
     }));
   }
@@ -1497,17 +1704,21 @@
   function mark(c) { return c ? 'X' : '&nbsp;'; }
   function displayDate(iso) { return (!iso || !iso.includes('-')) ? iso : `${iso.split('-')[2]}/${iso.split('-')[1]}/${iso.split('-')[0].slice(-2)}`; }
 
+  // =========================================================
+  // MEMO VIEW (PRINT / PDF DOCUMENT LAYOUT)
+  // =========================================================
   function renderDocument(container) {
     const r = getActive(); if(!r) { container.innerHTML = `<div class="table-panel"><div class="empty-state">No record selected. Go to <b>Memo Details</b> to create one.</div></div>`; return; }
-    const LW = 470, RW = 258, options = state.records.filter(r=>!r.isDraft).slice().sort((a,b)=>b.createdAt-a.createdAt).map(x => `<option value="${x.createdAt}" ${String(x.createdAt)===String(r.createdAt)?'selected':''}>BHS/ACM ${x.reportNo||'N/A'}</option>`).join('');
+    const LW = 470, RW = 258, options = state.records.filter(rec=>!rec.isDraft).slice().sort((a,b)=>b.createdAt-a.createdAt).map(x => `<option value="${x.createdAt}" ${String(x.createdAt)===String(r.createdAt)?'selected':''}>BHS/ACM ${x.reportNo||'N/A'}</option>`).join('');
     let h_dd = r.dd||'', h_mm = r.mm||'', h_yy = r.yy||''; if(r.happeningDate){ const p=r.happeningDate.split('-'); if(p.length===3){h_yy=p[0].slice(-2);h_mm=p[1];h_dd=p[2]} }
     let a_dd = r.actDd||'', a_mm = r.actMm||'', a_yy = r.actYy||''; if(r.actionDate){ const p=r.actionDate.split('-'); if(p.length===3){a_yy=p[0].slice(-2);a_mm=p[1];a_dd=p[2]} }
 
     const partsRows = Array.from({length: 9}, (_, i) => (r.parts&&r.parts[i])?r.parts[i]:{item:'',spec:'',part:'',qty:'',dismantle:'',sap:''}).map((p, i) => `<tr><td style="border-top:none;border-bottom:${i===8?'1px solid #000':'none'}"></td><td class="tc vm">${i+1}</td><td class="tc vm">${esc(p.item)}</td><td class="tc vm">${esc(p.spec)}</td><td class="tc vm">${esc(p.part)} ${esc(p.qty)}</td><td class="tc vm">${esc(p.dismantle)}</td><td class="tc vm">${esc(p.sap)}</td></tr>`).join('');
     const monRows = (r.monitoring||[]).map(m => `<tr style="height:21px"><td class="tc vm" style="font-size:8px">${esc(displayDate(m.d1))}</td><td class="tc vm" style="font-size:8px">${esc(m.b1)}</td><td class="tc vm" style="font-size:8px">${esc(m.r1)}</td><td class="tc vm" style="font-size:8px">${esc(displayDate(m.d2))}</td><td class="tc vm" style="font-size:8px">${esc(m.b2)}</td><td class="tc vm" style="font-size:8px">${esc(m.r2)}</td></tr>`).join('');
-    const historyLines = (r.history||[]).map((h, i) => `<div style="display:flex;gap:6px;font-size:11px;margin:9px 0 0 4px"><span>${i+1})</span><span style="min-width:64px">${esc(displayDate(h.date))}</span><span>${esc(h.remark)}</span></div>`).join('');
+    const historyRows = ensureRows(r.history ? r.history.slice(0, 3) : [], 3, () => ({date:'', remark:''}));
+    const historyLines = historyRows.map((h, i) => `<div style="display:flex;gap:6px;font-size:10px;line-height:1.25;margin:6px 0 0 4px"><span style="flex-shrink:0">${i+1})</span><span style="min-width:54px;flex-shrink:0">${esc(displayDate(h.date))}</span><span style="flex:1;word-break:break-word">${esc(h.remark)}</span></div>`).join('');
 
-    container.innerHTML = `<div class="doc-toolbar"><div class="rec-select"><span class="b">Viewing:</span><select class="recpick" id="acm-doc-recpick">${options}</select></div><div class="btn-row"><button class="btn btn-ghost" id="acm-edit-btn">← Edit this record</button><button class="btn btn-primary" id="acm-print-btn">Print / Save as PDF</button></div></div><div class="doc-scroll"><div class="doc-page" id="acm-doc-page"><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px"><div style="width:${LW}px"><div class="doc-header-title">K. L. International Airport</div><div class="doc-header-sub">- Baggage Handling System -</div><div class="doc-memo-title" style="margin-bottom:2px"><b><i>Operation &amp; Maintenance Action Memo</i></b></div></div><div style="width:${RW}px;margin-bottom:2px"><table style="margin-bottom:0;border-collapse:collapse;width:100%"><tr><td class="doc-italic-bold" style="width:54%">Notification No.</td><td class="tc vm">${esc(r.notificationNo)}</td></tr><tr><td class="doc-italic-bold">Work Order No.</td><td class="tc vm">${esc(r.workOrderNo)}</td></tr><tr><td class="doc-italic-bold">Maintenance Type</td><td class="tc vm">${esc(r.maintenanceType)}</td></tr></table></div></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="display:flex;gap:8px;width:${LW}px"><table style="flex:1"><tr><td style="width:28%">&nbsp;</td><td style="width:24%" class="tc">DD</td><td style="width:24%" class="tc">MM</td><td style="width:24%" class="tc">YY</td></tr><tr><td class="doc-label-cell">Date</td><td class="tc vm">${esc(h_dd)}</td><td class="tc vm">${esc(h_mm)}</td><td class="tc vm">${esc(h_yy)}</td></tr><tr><td class="doc-label-cell">Report No.</td><td colspan="3">BHS/ACM ${esc(r.reportNo)}</td></tr></table><table style="width:80px"><tr><td style="font-weight:700;text-align:center;height:32px;vertical-align:top">Time of<br/>Happening</td></tr><tr><td class="tc vm" style="height:24px">${esc(r.timeOfHappening)||'&nbsp;'}</td></tr></table></div><table style="width:${RW}px"><tr><td style="width:46%">&nbsp;</td><td style="width:34%" class="b tc">By</td><td style="width:20%" class="b tc">Group</td></tr><tr><td class="doc-label-cell">Issued</td><td class="tc vm">${esc(r.issuedBy)}</td><td rowspan="2" class="tc vm">${esc(r.issuedGroup)}</td></tr><tr><td class="doc-label-cell">Checked (TA/ST)</td><td class="tc vm">${esc(r.checkedBy)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="display:flex;width:${LW}px"><div style="width:56px;padding-top:12px;font-size:13px"><b><i>Title</i></b></div><table style="flex:1"><tr><td style="height:36px">${esc(r.title)||'&nbsp;'}</td></tr></table></div><table style="width:${RW}px"><tr><td style="width:38%" class="b">Conveyor/Item</td><td style="width:38%" class="b">Line/Equipment</td><td style="width:24%" class="b">No.</td></tr><tr><td class="tc vm" style="height:22px">${esc(r.conveyorItem)}</td><td class="tc vm">${esc(r.lineEquipment)}</td><td class="tc vm">${esc(r.equipNo)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><table style="width:${LW}px"><tr><td rowspan="4" style="width:18%" class="b">Category and Type of Error</td><td style="width:16.4%" class="tc">Op.Error</td><td style="width:16.4%" class="tc">Stoppage</td><td style="width:16.4%" class="tc">Damage</td><td style="width:16.4%" class="tc">Noise etc.</td><td style="width:16.4%" class="tc">Others</td></tr><tr><td class="doc-box-x">${mark((r.cat1||{}).opError)}</td><td class="doc-box-x">${mark((r.cat1||{}).stoppage)}</td><td class="doc-box-x">${mark((r.cat1||{}).damage)}</td><td class="doc-box-x">${mark((r.cat1||{}).noise)}</td><td class="doc-box-x">${mark((r.cat1||{}).othersType1)}</td></tr><tr><td class="tc">Mech.</td><td class="tc">Elec.</td><td class="tc">IT.</td><td class="tc">Operation</td><td class="tc">Others</td></tr><tr><td class="doc-box-x">${mark((r.cat2||{}).mech)}</td><td class="doc-box-x">${mark((r.cat2||{}).elec)}</td><td class="doc-box-x">${mark((r.cat2||{}).it)}</td><td class="doc-box-x">${mark((r.cat2||{}).operation)}</td><td class="doc-box-x">${mark((r.cat2||{}).othersType2)}</td></tr></table><table style="width:calc(100% - 478px)"><tr><td colspan="4" class="b">Degree of Urgency</td></tr><tr><td style="width:38%">Very Critical</td><td style="width:12%" class="doc-box-x">${mark(r.urgency==='veryCritical')}</td><td style="width:38%">Within 2 mths</td><td style="width:12%" class="doc-box-x">${mark(r.urgency==='within2months')}</td></tr><tr><td>Within 24hrs</td><td class="doc-box-x">${mark(r.urgency==='within24hrs')}</td><td>Within 1 week</td><td class="doc-box-x">${mark(r.urgency==='within1week')}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><table style="width:${LW}px"><tr><td style="height:74px;vertical-align:top"><b>Reason/detail:</b><div style="margin-top:4px;font-weight:400">${esc(r.reasonDetail)}</div></td></tr></table><table style="width:calc(100% - 478px);height:74px"><tr><td colspan="6" style="font-weight:700;text-align:center;height:16px">Monitoring status (Progress)</td></tr><tr style="height:16px"><td style="font-size:8px;text-align:center;width:18%">Insp.date</td><td style="font-size:8px;text-align:center;width:15%">By</td><td style="font-size:8px;text-align:center;width:17%">Result</td><td style="font-size:8px;text-align:center;width:18%">Insp.date</td><td style="font-size:8px;text-align:center;width:15%">By</td><td style="font-size:8px;text-align:center;width:17%">Result</td></tr>${monRows}</table></div><table style="margin-bottom:4px;table-layout:auto"><tr><td rowspan="3" style="width:8%;font-weight:700;text-align:center">SPARE<br/>PART<br/>STATUS</td><td colspan="10" class="b">Standard Parts Specification No;</td></tr><tr><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock:</td><td>${esc(r.spStock)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock Qty</td><td>${esc(r.spStockQty)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock: Critical</td><td>${esc(r.spStockCritical)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Checked by</td><td>${esc(r.spCheckedBy)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Qty</td><td>${esc(r.spQty)}</td></tr><tr><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Location</td><td>${esc(r.spLocation)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Check by</td><td>${esc(r.spCheckBy)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Request date</td><td>${esc(displayDate(r.spRequestDate))}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Delivery date</td><td>${esc(displayDate(r.spDeliveryDate))}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Location</td><td>${esc(r.spLocation2)}</td></tr></table><div style="font-weight:700;font-size:11px;margin:2px 0 8px">Request of action: <span style="font-weight:400">${esc(r.requestOfAction)}</span></div><div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:6px"><table style="width:230px"><tr><td style="width:34%;font-size:13px;border-top:none;border-left:none"><b><i>Action</i></b></td><td style="width:22%" class="tc">DD</td><td style="width:22%" class="tc">MM</td><td style="width:22%" class="tc">YY</td></tr><tr><td class="doc-label-cell">Date</td><td class="tc vm">${esc(a_dd)}</td><td class="tc vm">${esc(a_mm)}</td><td class="tc vm">${esc(a_yy)}</td></tr></table><table style="flex:1"><tr><td colspan="3" style="width:44%" class="b tc">Done By</td><td style="width:18%" class="b tc">Group</td><td style="width:19%" class="b tc">Start time</td><td style="width:19%" class="b tc">End time</td></tr><tr><td colspan="3" class="tc vm" style="height:24px">${esc(r.actDoneBy)}</td><td class="tc vm">${esc(r.actGroup)}</td><td class="tc vm">${esc(r.actStartTime)}</td><td class="tc vm">${esc(r.actEndTime)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="width:${LW}px"><table><tr><td rowspan="2" style="width:16%;white-space:nowrap">Category<br/>Entry "1"</td><td style="width:16.8%" class="tc">Reset</td><td style="width:16.8%" class="tc">Adjustment</td><td style="width:16.8%" class="tc">Replace</td><td style="width:16.8%" class="tc">Temporary</td><td style="width:16.8%" class="tc">Others</td></tr><tr><td class="doc-box-x">${mark(r.actionCat==='reset')}</td><td class="doc-box-x">${mark(r.actionCat==='adjustment')}</td><td class="doc-box-x">${mark(r.actionCat==='replace')}</td><td class="doc-box-x">${mark(r.actionCat==='temporary')}</td><td class="doc-box-x">${mark(r.actionCat==='othersAction')}</td></tr></table><table style="margin-top:-1px"><tr><td style="height:72px;vertical-align:top"><b>Detail</b><div style="font-weight:400;margin-top:3px">${esc(r.actionDetail)}</div></td></tr></table></div><div style="width:${RW}px"><div style="font-weight:700;font-size:11px">History (Last 3 changing date):</div><div style="display:flex;gap:56px;margin:8px 0 0 20px;font-size:11px"><span style="text-decoration:underline">Date</span><span style="text-decoration:underline">Remark</span></div>${historyLines}</div></div><div style="font-size:13px;margin-bottom:2px"><b><i>Result</i></b></div><table style="margin-bottom:0;border-bottom:none"><tr><td rowspan="2" style="width:8%;white-space:nowrap">Category<br/>Entry "/"</td><td style="width:8.5%;white-space:nowrap" class="tc">Tested OK</td><td style="width:8.5%;white-space:nowrap" class="tc">Modified</td><td style="width:8.5%;white-space:nowrap" class="tc">Pending</td><td style="width:9%;white-space:nowrap" class="tc">Temporary</td><td style="width:8.5%;white-space:nowrap" class="tc">Rectified</td><td style="width:9%;white-space:nowrap" class="tc">Force Run</td><td style="width:6%;white-space:nowrap" class="tc">KIV</td><td colspan="4" style="width:34%;font-weight:700" class="tc">Parameter data (If any)</td></tr><tr><td class="doc-box-x">${mark(r.resultCat==='testedOK')}</td><td class="doc-box-x">${mark(r.resultCat==='modified')}</td><td class="doc-box-x">${mark(r.resultCat==='pending')}</td><td class="doc-box-x">${mark(r.resultCat==='temporary2')}</td><td class="doc-box-x">${mark(r.resultCat==='rectified')}</td><td class="doc-box-x">${mark(r.resultCat==='forceRun')}</td><td class="doc-box-x">${mark(r.resultCat==='kiv')}</td><td class="tc" style="font-size:9.5px;width:8.5%">Speed<br/>(m/min)</td><td class="tc" style="font-size:9.5px;width:8.5%">Temp<br/>(°C)</td><td class="tc" style="font-size:9.5px;width:8.5%">Current<br/>(A)</td><td class="tc" style="font-size:9.5px;width:8.5%">Voltage<br/>(V)</td></tr><tr><td colspan="8" style="font-weight:700;border-bottom:none">Detail/Status</td><td class="tc vm" style="border-bottom:none">${esc(r.paramSpeed)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramTemp)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramCurrent)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramVoltage)}</td></tr><tr><td colspan="8" style="height:10px;vertical-align:top;font-weight:400;border-top:none">${esc(r.resultDetail)}</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td></tr></table><table style="margin-bottom:8px;margin-top:-1px"><tr><td class="doc-italic-bold tc vm" style="width:8%">Parts<br/>Records</td><td style="width:6%" class="b tc vm">No.</td><td style="width:26%" class="b tc vm">Item/Equipment name</td><td style="width:22%" class="b tc vm">Specification</td><td style="width:14%" class="b tc vm">Part Qty</td><td style="width:12%" class="b tc vm">Dismantle part status</td><td style="width:12%;color:#7a1f1f" class="b tc vm">SAP No / Others</td></tr>${partsRows}</table><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:9.5px;font-style:italic;font-weight:700;margin:0 0 12px">**Please make sure all necessary item including date, time and name written in the specified column</div><div style="display:flex;gap:36px"><div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).createNotification)}</span>Create Notification</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).createWorkOrder)}</span>Create Work Order</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).releaseWorkOrder)}</span>Release Work Order</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).gmps)}</span>GMPS</div></div><div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).timeConfirmation)}</span>Time Confirmation</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).teco)}</span>TECO</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).businessCompletion)}</span>Business Completion</div></div></div></div><div style="width:280px;margin-top:4px;position:relative"><div style="display:flex;margin-bottom:10px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Done By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.doneByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TECH )</div></div></div><div style="display:flex;margin-bottom:10px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Check By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.checkByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TO )</div></div></div><div style="display:flex;margin-bottom:14px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Confirmed By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.confirmedByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TE / E / SE )</div></div></div><div class="doc-footer-code" style="position:absolute;bottom:-15px;right:0;margin:0">BHS/MP03/ACM/Dec03/Rev.01</div></div></div></div></div>`;
+    container.innerHTML = `<div class="doc-toolbar"><div class="rec-select"><span class="b">Viewing:</span><select class="recpick" id="acm-doc-recpick">${options}</select></div><div class="btn-row"><button class="btn btn-ghost" id="acm-edit-btn">← Edit this record</button><button class="btn btn-primary" id="acm-print-btn">Print / Save as PDF</button></div></div><div class="doc-scroll"><div class="doc-page" id="acm-doc-page"><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px"><div style="width:${LW}px"><div class="doc-header-title">K. L. International Airport</div><div class="doc-header-sub">- Baggage Handling System -</div><div class="doc-memo-title" style="margin-bottom:2px"><b><i>Operation &amp; Maintenance Action Memo</i></b></div></div><div style="width:${RW}px;margin-bottom:2px"><table style="margin-bottom:0;border-collapse:collapse;width:100%"><tr><td class="doc-italic-bold" style="width:54%">Notification No.</td><td class="tc vm">${esc(r.notificationNo)}</td></tr><tr><td class="doc-italic-bold">Work Order No.</td><td class="tc vm">${esc(r.workOrderNo)}</td></tr><tr><td class="doc-italic-bold">Maintenance Type</td><td class="tc vm">${esc(r.maintenanceType)}</td></tr></table></div></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="display:flex;gap:8px;width:${LW}px"><table style="flex:1"><tr><td style="width:28%">&nbsp;</td><td style="width:24%" class="tc">DD</td><td style="width:24%" class="tc">MM</td><td style="width:24%" class="tc">YY</td></tr><tr><td class="doc-label-cell">Date</td><td class="tc vm">${esc(h_dd)}</td><td class="tc vm">${esc(h_mm)}</td><td class="tc vm">${esc(h_yy)}</td></tr><tr><td class="doc-label-cell">Report No.</td><td colspan="3">BHS/ACM ${esc(r.reportNo)}</td></tr></table><table style="width:80px"><tr><td style="font-weight:700;text-align:center;height:32px;vertical-align:top">Time of<br/>Happening</td></tr><tr><td class="tc vm" style="height:24px">${esc(r.timeOfHappening)||'&nbsp;'}</td></tr></table></div><table style="width:${RW}px"><tr><td style="width:46%">&nbsp;</td><td style="width:34%" class="b tc">By</td><td style="width:20%" class="b tc">Group</td></tr><tr><td class="doc-label-cell">Issued</td><td class="tc vm">${esc(r.issuedBy)}</td><td rowspan="2" class="tc vm">${esc(r.issuedGroup)}</td></tr><tr><td class="doc-label-cell">Checked (TA/ST)</td><td class="tc vm">${esc(r.checkedBy)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="display:flex;width:${LW}px"><div style="width:56px;padding-top:12px;font-size:13px"><b><i>Title</i></b></div><table style="flex:1"><tr><td style="height:36px">${esc(r.title)||'&nbsp;'}</td></tr></table></div><table style="width:${RW}px"><tr><td style="width:38%" class="b">Conveyor/Item</td><td style="width:38%" class="b">Line/Equipment</td><td style="width:24%" class="b">No.</td></tr><tr><td class="tc vm" style="height:22px">${esc(r.conveyorItem)}</td><td class="tc vm">${esc(r.lineEquipment)}</td><td class="tc vm">${esc(r.equipNo)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><table style="width:${LW}px"><tr><td rowspan="4" style="width:18%" class="b">Category and Type of Error</td><td style="width:16.4%" class="tc">Op.Error</td><td style="width:16.4%" class="tc">Stoppage</td><td style="width:16.4%" class="tc">Damage</td><td style="width:16.4%" class="tc">Noise etc.</td><td style="width:16.4%" class="tc">Others</td></tr><tr><td class="doc-box-x">${mark((r.cat1||{}).opError)}</td><td class="doc-box-x">${mark((r.cat1||{}).stoppage)}</td><td class="doc-box-x">${mark((r.cat1||{}).damage)}</td><td class="doc-box-x">${mark((r.cat1||{}).noise)}</td><td class="doc-box-x">${mark((r.cat1||{}).othersType1)}</td></tr><tr><td class="tc">Mech.</td><td class="tc">Elec.</td><td class="tc">IT.</td><td class="tc">Operation</td><td class="tc">Others</td></tr><tr><td class="doc-box-x">${mark((r.cat2||{}).mech)}</td><td class="doc-box-x">${mark((r.cat2||{}).elec)}</td><td class="doc-box-x">${mark((r.cat2||{}).it)}</td><td class="doc-box-x">${mark((r.cat2||{}).operation)}</td><td class="doc-box-x">${mark((r.cat2||{}).othersType2)}</td></tr></table><table style="width:calc(100% - 478px)"><tr><td colspan="4" class="b">Degree of Urgency</td></tr><tr><td style="width:38%">Very Critical</td><td style="width:12%" class="doc-box-x">${mark(r.urgency==='veryCritical')}</td><td style="width:38%">Within 2 mths</td><td style="width:12%" class="doc-box-x">${mark(r.urgency==='within2months')}</td></tr><tr><td>Within 24hrs</td><td class="doc-box-x">${mark(r.urgency==='within24hrs')}</td><td>Within 1 week</td><td class="doc-box-x">${mark(r.urgency==='within1week')}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><table style="width:${LW}px"><tr><td style="height:74px;vertical-align:top"><b>Reason/detail:</b><div style="margin-top:4px;font-weight:400">${esc(r.reasonDetail)}</div></td></tr></table><table style="width:calc(100% - 478px);height:74px"><tr><td colspan="6" style="font-weight:700;text-align:center;height:16px">Monitoring status (Progress)</td></tr><tr style="height:16px"><td style="font-size:8px;text-align:center;width:18%">Insp.date</td><td style="font-size:8px;text-align:center;width:15%">By</td><td style="font-size:8px;text-align:center;width:17%">Result</td><td style="font-size:8px;text-align:center;width:18%">Insp.date</td><td style="font-size:8px;text-align:center;width:15%">By</td><td style="font-size:8px;text-align:center;width:17%">Result</td></tr>${monRows}</table></div><table style="margin-bottom:4px;table-layout:auto"><tr><td rowspan="3" style="width:8%;font-weight:700;text-align:center">SPARE<br/>PART<br/>STATUS</td><td colspan="10" class="b">Standard Parts Specification No;</td></tr><tr><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock:</td><td>${esc(r.spStock)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock Qty</td><td>${esc(r.spStockQty)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock: Critical</td><td>${esc(r.spStockCritical)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Checked by</td><td>${esc(r.spCheckedBy)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Qty</td><td>${esc(r.spQty)}</td></tr><tr><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Location</td><td>${esc(r.spLocation)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Check by</td><td>${esc(r.spCheckBy)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Request date</td><td>${esc(displayDate(r.spRequestDate))}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Delivery date</td><td>${esc(displayDate(r.spDeliveryDate))}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Location</td><td>${esc(r.spLocation2)}</td></tr></table><div style="font-weight:700;font-size:11px;margin:2px 0 8px">Request of action: <span style="font-weight:400">${esc(r.requestOfAction)}</span></div><div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:6px"><table style="width:230px"><tr><td style="width:34%;font-size:13px;border-top:none;border-left:none"><b><i>Action</i></b></td><td style="width:22%" class="tc">DD</td><td style="width:22%" class="tc">MM</td><td style="width:22%" class="tc">YY</td></tr><tr><td class="doc-label-cell">Date</td><td class="tc vm">${esc(a_dd)}</td><td class="tc vm">${esc(a_mm)}</td><td class="tc vm">${esc(a_yy)}</td></tr></table><table style="flex:1"><tr><td colspan="3" style="width:44%" class="b tc">Done By</td><td style="width:18%" class="b tc">Group</td><td style="width:19%" class="b tc">Start time</td><td style="width:19%" class="b tc">End time</td></tr><tr><td colspan="3" class="tc vm" style="height:24px">${esc(r.actDoneBy)}</td><td class="tc vm">${esc(r.actGroup)}</td><td class="tc vm">${esc(r.actStartTime)}</td><td class="tc vm">${esc(r.actEndTime)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="width:${LW}px"><table><tr><td rowspan="2" style="width:16%;white-space:nowrap">Category<br/>Entry "1"</td><td style="width:16.8%" class="tc">Reset</td><td style="width:16.8%" class="tc">Adjustment</td><td style="width:16.8%" class="tc">Replace</td><td style="width:16.8%" class="tc">Temporary</td><td style="width:16.8%" class="tc">Others</td></tr><tr><td class="doc-box-x">${mark(r.actionCat==='reset')}</td><td class="doc-box-x">${mark(r.actionCat==='adjustment')}</td><td class="doc-box-x">${mark(r.actionCat==='replace')}</td><td class="doc-box-x">${mark(r.actionCat==='temporary')}</td><td class="doc-box-x">${mark(r.actionCat==='othersAction')}</td></tr></table><table style="margin-top:-1px"><tr><td style="height:72px;vertical-align:top"><b>Detail</b><div style="font-weight:400;margin-top:3px">${esc(r.actionDetail)}</div></td></tr></table></div><div style="width:${RW}px"><div style="font-weight:700;font-size:11px">History (Last 3 changing date):</div><div style="display:flex;gap:46px;margin:8px 0 0 20px;font-size:11px"><span style="text-decoration:underline">Date</span><span style="text-decoration:underline">Remark</span></div>${historyLines}</div></div><div style="font-size:13px;margin-bottom:2px"><b><i>Result</i></b></div><table style="margin-bottom:0;border-bottom:none"><tr><td rowspan="2" style="width:8%;white-space:nowrap">Category<br/>Entry "/"</td><td style="width:8.5%;white-space:nowrap" class="tc">Tested OK</td><td style="width:8.5%;white-space:nowrap" class="tc">Modified</td><td style="width:8.5%;white-space:nowrap" class="tc">Pending</td><td style="width:9%;white-space:nowrap" class="tc">Temporary</td><td style="width:8.5%;white-space:nowrap" class="tc">Rectified</td><td style="width:9%;white-space:nowrap" class="tc">Force Run</td><td style="width:6%;white-space:nowrap" class="tc">KIV</td><td colspan="4" style="width:34%;font-weight:700" class="tc">Parameter data (If any)</td></tr><tr><td class="doc-box-x">${mark(r.resultCat==='testedOK')}</td><td class="doc-box-x">${mark(r.resultCat==='modified')}</td><td class="doc-box-x">${mark(r.resultCat==='pending')}</td><td class="doc-box-x">${mark(r.resultCat==='temporary2')}</td><td class="doc-box-x">${mark(r.resultCat==='rectified')}</td><td class="doc-box-x">${mark(r.resultCat==='forceRun')}</td><td class="doc-box-x">${mark(r.resultCat==='kiv')}</td><td class="tc" style="font-size:9.5px;width:8.5%">Speed<br/>(m/min)</td><td class="tc" style="font-size:9.5px;width:8.5%">Temp<br/>(°C)</td><td class="tc" style="font-size:9.5px;width:8.5%">Current<br/>(A)</td><td class="tc" style="font-size:9.5px;width:8.5%">Voltage<br/>(V)</td></tr><tr><td colspan="8" style="font-weight:700;border-bottom:none">Detail/Status</td><td class="tc vm" style="border-bottom:none">${esc(r.paramSpeed)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramTemp)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramCurrent)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramVoltage)}</td></tr><tr><td colspan="8" style="height:10px;vertical-align:top;font-weight:400;border-top:none">${esc(r.resultDetail)}</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td></tr></table><table style="margin-bottom:8px;margin-top:-1px"><tr><td class="doc-italic-bold tc vm" style="width:8%">Parts<br/>Records</td><td style="width:6%" class="b tc vm">No.</td><td style="width:26%" class="b tc vm">Item/Equipment name</td><td style="width:22%" class="b tc vm">Specification</td><td style="width:14%" class="b tc vm">Part Qty</td><td style="width:12%" class="b tc vm">Dismantle part status</td><td style="width:12%;color:#7a1f1f" class="b tc vm">SAP No / Others</td></tr>${partsRows}</table><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:9.5px;font-style:italic;font-weight:700;margin:0 0 12px">**Please make sure all necessary item including date, time and name written in the specified column</div><div style="display:flex;gap:36px"><div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).createNotification)}</span>Create Notification</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).createWorkOrder)}</span>Create Work Order</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).releaseWorkOrder)}</span>Release Work Order</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).gmps)}</span>GMPS</div></div><div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).timeConfirmation)}</span>Time Confirmation</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).teco)}</span>TECO</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).businessCompletion)}</span>Business Completion</div></div></div></div><div style="width:280px;margin-top:4px;position:relative"><div style="display:flex;margin-bottom:10px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Done By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.doneByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TECH )</div></div></div><div style="display:flex;margin-bottom:10px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Check By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.checkByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TO )</div></div></div><div style="display:flex;margin-bottom:14px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Confirmed By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.confirmedByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TE / E / SE )</div></div></div><div class="doc-footer-code" style="position:absolute;bottom:-15px;right:0;margin:0">BHS/MP03/ACM/Dec03/Rev.01</div></div></div></div></div>`;
 
     container.querySelector('#acm-doc-recpick').addEventListener('change', async (e) => {
       if(state.isDirty){ const discard = await showModal("Unsaved Changes Detected", "You have entered or modified data that has not been submitted yet.\n\nPlease click \"Submit ✔\" to record your data, or click \"Discard Data\" to abandon your recent changes.", "unsaved"); if(!discard){ e.target.value = state.activeId; return; } revertActiveRecord(); }
