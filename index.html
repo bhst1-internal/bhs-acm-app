@@ -2807,6 +2807,183 @@
   function displayDate(iso) { return (!iso || !iso.includes('-')) ? iso : `${iso.split('-')[2]}/${iso.split('-')[1]}/${iso.split('-')[0].slice(-2)}`; }
 
   // =========================================================
+  // FULL-DOCUMENT JPEG EXPORTER (SHARED BY MEMO VIEW & NEW MEMO VIEW)
+  // =========================================================
+  async function exportDocumentAsJPEG(pageEl, btnEl, fileName, baseWidth = 794, extraBottomPad = 0) {
+    if (!pageEl) return;
+    if (typeof window.html2canvas === 'undefined') {
+      await showModal("Notice", "Export library is still loading. Please try again in a moment.", "alert");
+      return;
+    }
+
+    const origTxt = btnEl ? btnEl.textContent : '';
+    if (btnEl) {
+      btnEl.textContent = 'Preparing...';
+      btnEl.disabled = true;
+    }
+
+    let exportHost = null;
+    try {
+      // Mount an off-screen, unclipped full-width clone inside #acm-root so all styles match identically
+      exportHost = document.createElement('div');
+      exportHost.id = 'acm-jpeg-export-host';
+      exportHost.style.cssText = `position:fixed;top:0;left:-20000px;width:${baseWidth}px;height:auto;overflow:visible;background:#ffffff;pointer-events:none;z-index:-1;`;
+
+      const clone = pageEl.cloneNode(true);
+      clone.removeAttribute('id');
+      clone.style.width = `${baseWidth}px`;
+      clone.style.maxWidth = 'none';
+      clone.style.height = 'auto';
+      clone.style.margin = '0';
+      clone.style.transform = 'none';
+      clone.style.transformOrigin = 'top left';
+      clone.style.boxShadow = 'none';
+      clone.style.borderRadius = '0';
+      clone.style.overflow = 'visible';
+      if (extraBottomPad > 0) {
+        const currentPb = parseFloat(window.getComputedStyle(pageEl).paddingBottom) || 0;
+        clone.style.paddingBottom = `${Math.max(currentPb, extraBottomPad)}px`;
+      }
+
+      exportHost.appendChild(clone);
+      ROOT.appendChild(exportHost);
+
+      // Resolve cloud-hosted Drive photos into Base64 data URLs and wait for full image decode
+      const imgEls = Array.from(clone.querySelectorAll('img'));
+      if (imgEls.length > 0) {
+        if (btnEl) btnEl.textContent = 'Preparing photos...';
+        await Promise.all(imgEls.map(async (imgEl) => {
+          const src = imgEl.getAttribute('src') || '';
+          if (src && !src.startsWith('data:image/')) {
+            const dataUrl = await fetchDriveImageAsDataUrl(src);
+            if (dataUrl) imgEl.setAttribute('src', dataUrl);
+          }
+          if (!imgEl.complete || imgEl.naturalWidth === 0) {
+            await new Promise((res) => {
+              const done = () => { clearTimeout(t); res(); };
+              const t = setTimeout(done, 5000);
+              imgEl.addEventListener('load', done, { once: true });
+              imgEl.addEventListener('error', done, { once: true });
+            });
+          }
+          if (typeof imgEl.decode === 'function') {
+            try { await imgEl.decode(); } catch (_) {}
+          }
+        }));
+      }
+
+      if (document.fonts && document.fonts.ready) {
+        try { await document.fonts.ready; } catch (_) {}
+      }
+      await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+
+      // Measure complete unclipped document bounds (including absolutely positioned footers)
+      const cloneRect = clone.getBoundingClientRect();
+      let maxRight = cloneRect.right;
+      let maxBottom = cloneRect.bottom;
+      clone.querySelectorAll('*').forEach(el => {
+        const rect = el.getBoundingClientRect();
+        if (rect.width > 0 && rect.height > 0) {
+          if (rect.right > maxRight) maxRight = rect.right;
+          if (rect.bottom > maxBottom) maxBottom = rect.bottom;
+        }
+      });
+
+      const fullW = Math.ceil(Math.max(baseWidth, clone.scrollWidth, clone.offsetWidth, maxRight - cloneRect.left));
+      const fullH = Math.ceil(Math.max(clone.scrollHeight, clone.offsetHeight, maxBottom - cloneRect.top)) + 4;
+
+      exportHost.style.width = `${fullW}px`;
+      exportHost.style.height = `${fullH}px`;
+      clone.style.width = `${fullW}px`;
+      clone.style.minHeight = `${fullH}px`;
+
+      // Cap total canvas pixel area safely (<= 14MP) so tall memos never truncate on mobile browsers
+      const maxSafeScale = Math.sqrt(14000000 / Math.max(1, fullW * fullH));
+      const exportScale = Math.max(1.25, Math.min(2.5, Math.floor(maxSafeScale * 100) / 100));
+
+      if (btnEl) btnEl.textContent = 'Exporting JPEG...';
+      const canvas = await window.html2canvas(clone, {
+        scale: exportScale,
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        width: fullW,
+        height: fullH,
+        windowWidth: fullW + 20,
+        windowHeight: fullH + 20,
+        scrollX: 0,
+        scrollY: 0,
+        logging: false,
+        onclone: (clonedDoc) => {
+          clonedDoc.documentElement.style.overflow = 'visible';
+          clonedDoc.documentElement.style.height = 'auto';
+          clonedDoc.body.style.overflow = 'visible';
+          clonedDoc.body.style.margin = '0';
+          clonedDoc.body.style.padding = '0';
+          clonedDoc.body.style.height = 'auto';
+          clonedDoc.body.style.background = '#ffffff';
+
+          const clonedRoot = clonedDoc.getElementById('acm-root');
+          if (clonedRoot) {
+            clonedRoot.style.overflow = 'visible';
+            clonedRoot.style.height = 'auto';
+            clonedRoot.style.minHeight = '0';
+            clonedRoot.style.padding = '0';
+            clonedRoot.style.background = '#ffffff';
+            Array.from(clonedRoot.children).forEach(child => {
+              if (child.id !== 'acm-jpeg-export-host') child.style.display = 'none';
+            });
+          }
+
+          const clonedHost = clonedDoc.getElementById('acm-jpeg-export-host');
+          if (clonedHost) {
+            clonedHost.style.position = 'relative';
+            clonedHost.style.top = '0';
+            clonedHost.style.left = '0';
+            clonedHost.style.width = `${fullW}px`;
+            clonedHost.style.height = `${fullH}px`;
+            clonedHost.style.overflow = 'visible';
+            clonedHost.style.zIndex = '1';
+          }
+        }
+      });
+
+      // Download via Blob URL (prevents truncation/failures with large JPEGs on mobile browsers)
+      const downloadTarget = await new Promise((resolve) => {
+        if (typeof canvas.toBlob === 'function') {
+          canvas.toBlob((blob) => {
+            if (blob) resolve({ url: URL.createObjectURL(blob), isBlob: true });
+            else resolve({ url: canvas.toDataURL('image/jpeg', 0.96), isBlob: false });
+          }, 'image/jpeg', 0.96);
+        } else {
+          resolve({ url: canvas.toDataURL('image/jpeg', 0.96), isBlob: false });
+        }
+      });
+
+      const link = document.createElement('a');
+      link.href = downloadTarget.url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      if (downloadTarget.isBlob) {
+        setTimeout(() => URL.revokeObjectURL(downloadTarget.url), 5000);
+      }
+    } catch (err) {
+      console.error('JPEG export error:', err);
+      await showModal("Export Error", "Unable to export JPEG. Please use \"Print / Save as PDF\" instead.", "alert", true);
+    } finally {
+      if (exportHost && exportHost.parentNode) {
+        exportHost.parentNode.removeChild(exportHost);
+      }
+      if (btnEl) {
+        btnEl.textContent = origTxt;
+        btnEl.disabled = false;
+      }
+    }
+  }
+
+  // =========================================================
   // MEMO VIEW (PRINT / PDF DOCUMENT LAYOUT)
   // =========================================================
   function renderDocument(container) {
@@ -2820,13 +2997,19 @@
     const historyRows = ensureRows(r.history ? r.history.slice(0, 3) : [], 3, () => ({date:'', remark:''}));
     const historyLines = historyRows.map((h, i) => `<div style="display:flex;gap:6px;font-size:10px;line-height:1.25;margin:6px 0 0 4px"><span style="flex-shrink:0">${i+1})</span><span style="min-width:54px;flex-shrink:0">${esc(displayDate(h.date))}</span><span style="flex:1;word-break:break-word">${esc(h.remark)}</span></div>`).join('');
 
-    container.innerHTML = `<div class="doc-toolbar"><div class="rec-select"><span class="b">Viewing:</span><select class="recpick" id="acm-doc-recpick">${options}</select></div><div class="btn-row"><button class="btn btn-ghost" id="acm-edit-btn">← Edit this record</button><button class="btn btn-primary" id="acm-print-btn">Print / Save as PDF</button></div></div><div class="doc-scroll"><div class="doc-page" id="acm-doc-page"><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px"><div style="width:${LW}px"><div class="doc-header-title">K. L. International Airport</div><div class="doc-header-sub">- Baggage Handling & Screening (Terminal 1) -</div><div class="doc-memo-title" style="margin-bottom:2px"><b><i>Operation &amp; Maintenance Action Memo</i></b></div></div><div style="width:${RW}px;margin-bottom:2px"><table style="margin-bottom:0;border-collapse:collapse;width:100%"><tr><td class="doc-italic-bold" style="width:54%">Notification No.</td><td class="tc vm">${esc(r.notificationNo)}</td></tr><tr><td class="doc-italic-bold">Work Order No.</td><td class="tc vm">${esc(r.workOrderNo)}</td></tr><tr><td class="doc-italic-bold">Maintenance Type</td><td class="tc vm">${esc(r.maintenanceType)}</td></tr></table></div></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="display:flex;gap:8px;width:${LW}px"><table style="flex:1"><tr><td style="width:28%">&nbsp;</td><td style="width:24%" class="tc">DD</td><td style="width:24%" class="tc">MM</td><td style="width:24%" class="tc">YY</td></tr><tr><td class="doc-label-cell">Date</td><td class="tc vm">${esc(h_dd)}</td><td class="tc vm">${esc(h_mm)}</td><td class="tc vm">${esc(h_yy)}</td></tr><tr><td class="doc-label-cell">Report No.</td><td colspan="3">BHS/ACM ${esc(r.reportNo)}</td></tr></table><table style="width:80px"><tr><td style="font-weight:700;text-align:center;height:32px;vertical-align:top">Time of<br/>Happening</td></tr><tr><td class="tc vm" style="height:24px">${esc(r.timeOfHappening)||'&nbsp;'}</td></tr></table></div><table style="width:${RW}px"><tr><td style="width:46%">&nbsp;</td><td style="width:34%" class="b tc">By</td><td style="width:20%" class="b tc">Group</td></tr><tr><td class="doc-label-cell">Issued</td><td class="tc vm">${esc(r.issuedBy)}</td><td rowspan="2" class="tc vm">${esc(r.issuedGroup)}</td></tr><tr><td class="doc-label-cell">Checked (TA/ST)</td><td class="tc vm">${esc(r.checkedBy)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="display:flex;width:${LW}px"><div style="width:56px;padding-top:12px;font-size:13px"><b><i>Title</i></b></div><table style="flex:1"><tr><td style="height:36px">${esc(r.title)||'&nbsp;'}</td></tr></table></div><table style="width:${RW}px"><tr><td style="width:38%" class="b">Conveyor/Item</td><td style="width:38%" class="b">Line/Equipment</td><td style="width:24%" class="b">No.</td></tr><tr><td class="tc vm" style="height:22px">${esc(r.conveyorItem)}</td><td class="tc vm">${esc(r.lineEquipment)}</td><td class="tc vm">${esc(r.equipNo)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><table style="width:${LW}px"><tr><td rowspan="4" style="width:18%" class="b">Category and Type of Error</td><td style="width:16.4%" class="tc">Op.Error</td><td style="width:16.4%" class="tc">Stoppage</td><td style="width:16.4%" class="tc">Damage</td><td style="width:16.4%" class="tc">Noise etc.</td><td style="width:16.4%" class="tc">Others</td></tr><tr><td class="doc-box-x">${mark((r.cat1||{}).opError)}</td><td class="doc-box-x">${mark((r.cat1||{}).stoppage)}</td><td class="doc-box-x">${mark((r.cat1||{}).damage)}</td><td class="doc-box-x">${mark((r.cat1||{}).noise)}</td><td class="doc-box-x">${mark((r.cat1||{}).othersType1)}</td></tr><tr><td class="tc">Mech.</td><td class="tc">Elec.</td><td class="tc">IT.</td><td class="tc">Operation</td><td class="tc">Others</td></tr><tr><td class="doc-box-x">${mark((r.cat2||{}).mech)}</td><td class="doc-box-x">${mark((r.cat2||{}).elec)}</td><td class="doc-box-x">${mark((r.cat2||{}).it)}</td><td class="doc-box-x">${mark((r.cat2||{}).operation)}</td><td class="doc-box-x">${mark((r.cat2||{}).othersType2)}</td></tr></table><table style="width:calc(100% - 478px)"><tr><td colspan="4" class="b">Degree of Urgency</td></tr><tr><td style="width:38%">Very Critical</td><td style="width:12%" class="doc-box-x">${mark(r.urgency==='veryCritical')}</td><td style="width:38%">Within 2 mths</td><td style="width:12%" class="doc-box-x">${mark(r.urgency==='within2months')}</td></tr><tr><td>Within 24hrs</td><td class="doc-box-x">${mark(r.urgency==='within24hrs')}</td><td>Within 1 week</td><td class="doc-box-x">${mark(r.urgency==='within1week')}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><table style="width:${LW}px"><tr><td style="height:74px;vertical-align:top"><b>Reason/detail:</b><div style="margin-top:4px;font-weight:400">${esc(r.reasonDetail)}</div></td></tr></table><table style="width:calc(100% - 478px);height:74px"><tr><td colspan="6" style="font-weight:700;text-align:center;height:16px">Monitoring status (Progress)</td></tr><tr style="height:16px"><td style="font-size:8px;text-align:center;width:18%">Insp.date</td><td style="font-size:8px;text-align:center;width:15%">By</td><td style="font-size:8px;text-align:center;width:17%">Result</td><td style="font-size:8px;text-align:center;width:18%">Insp.date</td><td style="font-size:8px;text-align:center;width:15%">By</td><td style="font-size:8px;text-align:center;width:17%">Result</td></tr>${monRows}</table></div><table style="margin-bottom:4px;table-layout:auto"><tr><td rowspan="3" style="width:8%;font-weight:700;text-align:center">SPARE<br/>PART<br/>STATUS</td><td colspan="10" class="b">Standard Parts Specification No;</td></tr><tr><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock:</td><td>${esc(r.spStock)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock Qty</td><td>${esc(r.spStockQty)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock: Critical</td><td>${esc(r.spStockCritical)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Checked by</td><td>${esc(r.spCheckedBy)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Qty</td><td>${esc(r.spQty)}</td></tr><tr><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Location</td><td>${esc(r.spLocation)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Check by</td><td>${esc(r.spCheckBy)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Request date</td><td>${esc(displayDate(r.spRequestDate))}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Delivery date</td><td>${esc(displayDate(r.spDeliveryDate))}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Location</td><td>${esc(r.spLocation2)}</td></tr></table><div style="font-weight:700;font-size:11px;margin:2px 0 8px">Request of action: <span style="font-weight:400">${esc(r.requestOfAction)}</span></div><div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:6px"><table style="width:230px"><tr><td style="width:34%;font-size:13px;border-top:none;border-left:none"><b><i>Action</i></b></td><td style="width:22%" class="tc">DD</td><td style="width:22%" class="tc">MM</td><td style="width:22%" class="tc">YY</td></tr><tr><td class="doc-label-cell">Date</td><td class="tc vm">${esc(a_dd)}</td><td class="tc vm">${esc(a_mm)}</td><td class="tc vm">${esc(a_yy)}</td></tr></table><table style="flex:1"><tr><td colspan="3" style="width:44%" class="b tc">Done By</td><td style="width:18%" class="b tc">Group</td><td style="width:19%" class="b tc">Start time</td><td style="width:19%" class="b tc">End time</td></tr><tr><td colspan="3" class="tc vm" style="height:24px">${esc(r.actDoneBy)}</td><td class="tc vm">${esc(r.actGroup)}</td><td class="tc vm">${esc(r.actStartTime)}</td><td class="tc vm">${esc(r.actEndTime)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="width:${LW}px"><table><tr><td rowspan="2" style="width:16%;white-space:nowrap">Category<br/>Entry "1"</td><td style="width:16.8%" class="tc">Reset</td><td style="width:16.8%" class="tc">Adjustment</td><td style="width:16.8%" class="tc">Replace</td><td style="width:16.8%" class="tc">Temporary</td><td style="width:16.8%" class="tc">Others</td></tr><tr><td class="doc-box-x">${mark(r.actionCat==='reset')}</td><td class="doc-box-x">${mark(r.actionCat==='adjustment')}</td><td class="doc-box-x">${mark(r.actionCat==='replace')}</td><td class="doc-box-x">${mark(r.actionCat==='temporary')}</td><td class="doc-box-x">${mark(r.actionCat==='othersAction')}</td></tr></table><table style="margin-top:-1px"><tr><td style="height:72px;vertical-align:top"><b>Detail</b><div style="font-weight:400;margin-top:3px">${esc(r.actionDetail)}</div></td></tr></table></div><div style="width:${RW}px"><div style="font-weight:700;font-size:11px">History (Last 3 changing date):</div><div style="display:flex;gap:46px;margin:8px 0 0 20px;font-size:11px"><span style="text-decoration:underline">Date</span><span style="text-decoration:underline">Remark</span></div>${historyLines}</div></div><div style="font-size:13px;margin-bottom:2px"><b><i>Result</i></b></div><table style="margin-bottom:0;border-bottom:none"><tr><td rowspan="2" style="width:8%;white-space:nowrap">Category<br/>Entry "/"</td><td style="width:8.5%;white-space:nowrap" class="tc">Tested OK</td><td style="width:8.5%;white-space:nowrap" class="tc">Modified</td><td style="width:8.5%;white-space:nowrap" class="tc">Pending</td><td style="width:9%;white-space:nowrap" class="tc">Temporary</td><td style="width:8.5%;white-space:nowrap" class="tc">Rectified</td><td style="width:9%;white-space:nowrap" class="tc">Force Run</td><td style="width:6%;white-space:nowrap" class="tc">KIV</td><td colspan="4" style="width:34%;font-weight:700" class="tc">Parameter data (If any)</td></tr><tr><td class="doc-box-x">${mark(r.resultCat==='testedOK')}</td><td class="doc-box-x">${mark(r.resultCat==='modified')}</td><td class="doc-box-x">${mark(r.resultCat==='pending')}</td><td class="doc-box-x">${mark(r.resultCat==='temporary2')}</td><td class="doc-box-x">${mark(r.resultCat==='rectified')}</td><td class="doc-box-x">${mark(r.resultCat==='forceRun')}</td><td class="doc-box-x">${mark(r.resultCat==='kiv')}</td><td class="tc" style="font-size:9.5px;width:8.5%">Speed<br/>(m/min)</td><td class="tc" style="font-size:9.5px;width:8.5%">Temp<br/>(°C)</td><td class="tc" style="font-size:9.5px;width:8.5%">Current<br/>(A)</td><td class="tc" style="font-size:9.5px;width:8.5%">Voltage<br/>(V)</td></tr><tr><td colspan="8" style="font-weight:700;border-bottom:none">Detail/Status</td><td class="tc vm" style="border-bottom:none">${esc(r.paramSpeed)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramTemp)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramCurrent)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramVoltage)}</td></tr><tr><td colspan="8" style="height:10px;vertical-align:top;font-weight:400;border-top:none">${esc(r.resultDetail)}</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td></tr></table><table style="margin-bottom:8px;margin-top:-1px"><tr><td class="doc-italic-bold tc vm" style="width:8%">Parts<br/>Records</td><td style="width:6%" class="b tc vm">No.</td><td style="width:26%" class="b tc vm">Item/Equipment name</td><td style="width:22%" class="b tc vm">Specification</td><td style="width:14%" class="b tc vm">Part Qty</td><td style="width:12%" class="b tc vm">Dismantle part status</td><td style="width:12%;color:#7a1f1f" class="b tc vm">SAP No / Others</td></tr>${partsRows}</table><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:9.5px;font-style:italic;font-weight:700;margin:0 0 12px">**Please make sure all necessary item including date, time and name written in the specified column</div><div style="display:flex;gap:36px"><div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).createNotification)}</span>Create Notification</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).createWorkOrder)}</span>Create Work Order</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).releaseWorkOrder)}</span>Release Work Order</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).gmps)}</span>GMPS</div></div><div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).timeConfirmation)}</span>Time Confirmation</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).teco)}</span>TECO</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).businessCompletion)}</span>Business Completion</div></div></div></div><div style="width:280px;margin-top:4px;position:relative"><div style="display:flex;margin-bottom:10px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Done By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.doneByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TECH )</div></div></div><div style="display:flex;margin-bottom:10px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Check By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.checkByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TO )</div></div></div><div style="display:flex;margin-bottom:14px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Confirmed By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.confirmedByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TE / E / SE )</div></div></div><div class="doc-footer-code" style="position:absolute;bottom:-15px;right:0;margin:0">BHS/MP03/ACM/Dec03/Rev.01</div></div></div></div></div>`;
+    container.innerHTML = `<div class="doc-toolbar"><div class="rec-select"><span class="b">Viewing:</span><select class="recpick" id="acm-doc-recpick">${options}</select></div><div class="btn-row"><button type="button" class="btn btn-ghost" id="acm-edit-btn">← Edit this record</button><button type="button" class="btn btn-ghost" id="acm-doc-jpeg-btn">Save as JPEG</button><button type="button" class="btn btn-primary" id="acm-print-btn">Print / Save as PDF</button></div></div><div class="doc-scroll"><div class="doc-page" id="acm-doc-page"><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:8px"><div style="width:${LW}px"><div class="doc-header-title">K. L. International Airport</div><div class="doc-header-sub">- Baggage Handling & Screening (Terminal 1) -</div><div class="doc-memo-title" style="margin-bottom:2px"><b><i>Operation &amp; Maintenance Action Memo</i></b></div></div><div style="width:${RW}px;margin-bottom:2px"><table style="margin-bottom:0;border-collapse:collapse;width:100%"><tr><td class="doc-italic-bold" style="width:54%">Notification No.</td><td class="tc vm">${esc(r.notificationNo)}</td></tr><tr><td class="doc-italic-bold">Work Order No.</td><td class="tc vm">${esc(r.workOrderNo)}</td></tr><tr><td class="doc-italic-bold">Maintenance Type</td><td class="tc vm">${esc(r.maintenanceType)}</td></tr></table></div></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="display:flex;gap:8px;width:${LW}px"><table style="flex:1"><tr><td style="width:28%">&nbsp;</td><td style="width:24%" class="tc">DD</td><td style="width:24%" class="tc">MM</td><td style="width:24%" class="tc">YY</td></tr><tr><td class="doc-label-cell">Date</td><td class="tc vm">${esc(h_dd)}</td><td class="tc vm">${esc(h_mm)}</td><td class="tc vm">${esc(h_yy)}</td></tr><tr><td class="doc-label-cell">Report No.</td><td colspan="3">BHS/ACM ${esc(r.reportNo)}</td></tr></table><table style="width:80px"><tr><td style="font-weight:700;text-align:center;height:32px;vertical-align:top">Time of<br/>Happening</td></tr><tr><td class="tc vm" style="height:24px">${esc(r.timeOfHappening)||'&nbsp;'}</td></tr></table></div><table style="width:${RW}px"><tr><td style="width:46%">&nbsp;</td><td style="width:34%" class="b tc">By</td><td style="width:20%" class="b tc">Group</td></tr><tr><td class="doc-label-cell">Issued</td><td class="tc vm">${esc(r.issuedBy)}</td><td rowspan="2" class="tc vm">${esc(r.issuedGroup)}</td></tr><tr><td class="doc-label-cell">Checked (TA/ST)</td><td class="tc vm">${esc(r.checkedBy)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="display:flex;width:${LW}px"><div style="width:56px;padding-top:12px;font-size:13px"><b><i>Title</i></b></div><table style="flex:1"><tr><td style="height:36px">${esc(r.title)||'&nbsp;'}</td></tr></table></div><table style="width:${RW}px"><tr><td style="width:38%" class="b">Conveyor/Item</td><td style="width:38%" class="b">Line/Equipment</td><td style="width:24%" class="b">No.</td></tr><tr><td class="tc vm" style="height:22px">${esc(r.conveyorItem)}</td><td class="tc vm">${esc(r.lineEquipment)}</td><td class="tc vm">${esc(r.equipNo)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><table style="width:${LW}px"><tr><td rowspan="4" style="width:18%" class="b">Category and Type of Error</td><td style="width:16.4%" class="tc">Op.Error</td><td style="width:16.4%" class="tc">Stoppage</td><td style="width:16.4%" class="tc">Damage</td><td style="width:16.4%" class="tc">Noise etc.</td><td style="width:16.4%" class="tc">Others</td></tr><tr><td class="doc-box-x">${mark((r.cat1||{}).opError)}</td><td class="doc-box-x">${mark((r.cat1||{}).stoppage)}</td><td class="doc-box-x">${mark((r.cat1||{}).damage)}</td><td class="doc-box-x">${mark((r.cat1||{}).noise)}</td><td class="doc-box-x">${mark((r.cat1||{}).othersType1)}</td></tr><tr><td class="tc">Mech.</td><td class="tc">Elec.</td><td class="tc">IT.</td><td class="tc">Operation</td><td class="tc">Others</td></tr><tr><td class="doc-box-x">${mark((r.cat2||{}).mech)}</td><td class="doc-box-x">${mark((r.cat2||{}).elec)}</td><td class="doc-box-x">${mark((r.cat2||{}).it)}</td><td class="doc-box-x">${mark((r.cat2||{}).operation)}</td><td class="doc-box-x">${mark((r.cat2||{}).othersType2)}</td></tr></table><table style="width:calc(100% - 478px)"><tr><td colspan="4" class="b">Degree of Urgency</td></tr><tr><td style="width:38%">Very Critical</td><td style="width:12%" class="doc-box-x">${mark(r.urgency==='veryCritical')}</td><td style="width:38%">Within 2 mths</td><td style="width:12%" class="doc-box-x">${mark(r.urgency==='within2months')}</td></tr><tr><td>Within 24hrs</td><td class="doc-box-x">${mark(r.urgency==='within24hrs')}</td><td>Within 1 week</td><td class="doc-box-x">${mark(r.urgency==='within1week')}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><table style="width:${LW}px"><tr><td style="height:74px;vertical-align:top"><b>Reason/detail:</b><div style="margin-top:4px;font-weight:400">${esc(r.reasonDetail)}</div></td></tr></table><table style="width:calc(100% - 478px);height:74px"><tr><td colspan="6" style="font-weight:700;text-align:center;height:16px">Monitoring status (Progress)</td></tr><tr style="height:16px"><td style="font-size:8px;text-align:center;width:18%">Insp.date</td><td style="font-size:8px;text-align:center;width:15%">By</td><td style="font-size:8px;text-align:center;width:17%">Result</td><td style="font-size:8px;text-align:center;width:18%">Insp.date</td><td style="font-size:8px;text-align:center;width:15%">By</td><td style="font-size:8px;text-align:center;width:17%">Result</td></tr>${monRows}</table></div><table style="margin-bottom:4px;table-layout:auto"><tr><td rowspan="3" style="width:8%;font-weight:700;text-align:center">SPARE<br/>PART<br/>STATUS</td><td colspan="10" class="b">Standard Parts Specification No;</td></tr><tr><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock:</td><td>${esc(r.spStock)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock Qty</td><td>${esc(r.spStockQty)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Stock: Critical</td><td>${esc(r.spStockCritical)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Checked by</td><td>${esc(r.spCheckedBy)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Qty</td><td>${esc(r.spQty)}</td></tr><tr><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Location</td><td>${esc(r.spLocation)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Check by</td><td>${esc(r.spCheckBy)}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Request date</td><td>${esc(displayDate(r.spRequestDate))}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Delivery date</td><td>${esc(displayDate(r.spDeliveryDate))}</td><td style="font-weight:700;white-space:nowrap;padding:3px 4px;width:1%">Location</td><td>${esc(r.spLocation2)}</td></tr></table><div style="font-weight:700;font-size:11px;margin:2px 0 8px">Request of action: <span style="font-weight:400">${esc(r.requestOfAction)}</span></div><div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:6px"><table style="width:230px"><tr><td style="width:34%;font-size:13px;border-top:none;border-left:none"><b><i>Action</i></b></td><td style="width:22%" class="tc">DD</td><td style="width:22%" class="tc">MM</td><td style="width:22%" class="tc">YY</td></tr><tr><td class="doc-label-cell">Date</td><td class="tc vm">${esc(a_dd)}</td><td class="tc vm">${esc(a_mm)}</td><td class="tc vm">${esc(a_yy)}</td></tr></table><table style="flex:1"><tr><td colspan="3" style="width:44%" class="b tc">Done By</td><td style="width:18%" class="b tc">Group</td><td style="width:19%" class="b tc">Start time</td><td style="width:19%" class="b tc">End time</td></tr><tr><td colspan="3" class="tc vm" style="height:24px">${esc(r.actDoneBy)}</td><td class="tc vm">${esc(r.actGroup)}</td><td class="tc vm">${esc(r.actStartTime)}</td><td class="tc vm">${esc(r.actEndTime)}</td></tr></table></div><div style="display:flex;justify-content:space-between;margin-bottom:6px"><div style="width:${LW}px"><table><tr><td rowspan="2" style="width:16%;white-space:nowrap">Category<br/>Entry "1"</td><td style="width:16.8%" class="tc">Reset</td><td style="width:16.8%" class="tc">Adjustment</td><td style="width:16.8%" class="tc">Replace</td><td style="width:16.8%" class="tc">Temporary</td><td style="width:16.8%" class="tc">Others</td></tr><tr><td class="doc-box-x">${mark(r.actionCat==='reset')}</td><td class="doc-box-x">${mark(r.actionCat==='adjustment')}</td><td class="doc-box-x">${mark(r.actionCat==='replace')}</td><td class="doc-box-x">${mark(r.actionCat==='temporary')}</td><td class="doc-box-x">${mark(r.actionCat==='othersAction')}</td></tr></table><table style="margin-top:-1px"><tr><td style="height:72px;vertical-align:top"><b>Detail</b><div style="font-weight:400;margin-top:3px">${esc(r.actionDetail)}</div></td></tr></table></div><div style="width:${RW}px"><div style="font-weight:700;font-size:11px">History (Last 3 changing date):</div><div style="display:flex;gap:46px;margin:8px 0 0 20px;font-size:11px"><span style="text-decoration:underline">Date</span><span style="text-decoration:underline">Remark</span></div>${historyLines}</div></div><div style="font-size:13px;margin-bottom:2px"><b><i>Result</i></b></div><table style="margin-bottom:0;border-bottom:none"><tr><td rowspan="2" style="width:8%;white-space:nowrap">Category<br/>Entry "/"</td><td style="width:8.5%;white-space:nowrap" class="tc">Tested OK</td><td style="width:8.5%;white-space:nowrap" class="tc">Modified</td><td style="width:8.5%;white-space:nowrap" class="tc">Pending</td><td style="width:9%;white-space:nowrap" class="tc">Temporary</td><td style="width:8.5%;white-space:nowrap" class="tc">Rectified</td><td style="width:9%;white-space:nowrap" class="tc">Force Run</td><td style="width:6%;white-space:nowrap" class="tc">KIV</td><td colspan="4" style="width:34%;font-weight:700" class="tc">Parameter data (If any)</td></tr><tr><td class="doc-box-x">${mark(r.resultCat==='testedOK')}</td><td class="doc-box-x">${mark(r.resultCat==='modified')}</td><td class="doc-box-x">${mark(r.resultCat==='pending')}</td><td class="doc-box-x">${mark(r.resultCat==='temporary2')}</td><td class="doc-box-x">${mark(r.resultCat==='rectified')}</td><td class="doc-box-x">${mark(r.resultCat==='forceRun')}</td><td class="doc-box-x">${mark(r.resultCat==='kiv')}</td><td class="tc" style="font-size:9.5px;width:8.5%">Speed<br/>(m/min)</td><td class="tc" style="font-size:9.5px;width:8.5%">Temp<br/>(°C)</td><td class="tc" style="font-size:9.5px;width:8.5%">Current<br/>(A)</td><td class="tc" style="font-size:9.5px;width:8.5%">Voltage<br/>(V)</td></tr><tr><td colspan="8" style="font-weight:700;border-bottom:none">Detail/Status</td><td class="tc vm" style="border-bottom:none">${esc(r.paramSpeed)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramTemp)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramCurrent)}</td><td class="tc vm" style="border-bottom:none">${esc(r.paramVoltage)}</td></tr><tr><td colspan="8" style="height:10px;vertical-align:top;font-weight:400;border-top:none">${esc(r.resultDetail)}</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td><td style="border-top:none">&nbsp;</td></tr></table><table style="margin-bottom:8px;margin-top:-1px"><tr><td class="doc-italic-bold tc vm" style="width:8%">Parts<br/>Records</td><td style="width:6%" class="b tc vm">No.</td><td style="width:26%" class="b tc vm">Item/Equipment name</td><td style="width:22%" class="b tc vm">Specification</td><td style="width:14%" class="b tc vm">Part Qty</td><td style="width:12%" class="b tc vm">Dismantle part status</td><td style="width:12%;color:#7a1f1f" class="b tc vm">SAP No / Others</td></tr>${partsRows}</table><div style="display:flex;justify-content:space-between;align-items:flex-start"><div><div style="font-size:9.5px;font-style:italic;font-weight:700;margin:0 0 12px">**Please make sure all necessary item including date, time and name written in the specified column</div><div style="display:flex;gap:36px"><div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).createNotification)}</span>Create Notification</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).createWorkOrder)}</span>Create Work Order</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).releaseWorkOrder)}</span>Release Work Order</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).gmps)}</span>GMPS</div></div><div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).timeConfirmation)}</span>Time Confirmation</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).teco)}</span>TECO</div><div class="doc-checklist-row"><span class="doc-checkbox">${mark((r.flags||{}).businessCompletion)}</span>Business Completion</div></div></div></div><div style="width:280px;margin-top:4px;position:relative"><div style="display:flex;margin-bottom:10px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Done By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.doneByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TECH )</div></div></div><div style="display:flex;margin-bottom:10px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Check By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.checkByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TO )</div></div></div><div style="display:flex;margin-bottom:14px"><div style="width:85px;font-size:11px;font-weight:700;text-align:right;padding-right:6px;padding-top:14px">Confirmed By:</div><div style="flex:1;display:flex;flex-direction:column;align-items:center"><div style="font-size:11px;font-weight:700;min-height:14px;margin-bottom:1px;text-align:center;line-height:1.2">${esc(r.confirmedByName)}</div><div style="border-top:1px solid #000;width:100%;text-align:center;font-size:10.5px;padding-top:2px">( TE / E / SE )</div></div></div><div class="doc-footer-code" style="position:absolute;bottom:-15px;right:0;margin:0">BHS/MP03/ACM/Dec03/Rev.01</div></div></div></div></div>`;
 
     container.querySelector('#acm-doc-recpick').addEventListener('change', async (e) => {
       if(state.isDirty){ const discard = await showModal("Unsaved Changes Detected", "You have entered or modified data that has not been submitted yet.\n\nPlease click \"Submit ✔\" to record your data, or click \"Discard Data\" to abandon your recent changes.", "unsaved"); if(!discard){ e.target.value = state.activeId; return; } revertActiveRecord(); }
       state.activeId = String(e.target.value); render();
     });
     container.querySelector('#acm-edit-btn').addEventListener('click', () => { state.tab = 'input'; render(); });
+    container.querySelector('#acm-doc-jpeg-btn').addEventListener('click', () => {
+      const pageEl = container.querySelector('#acm-doc-page');
+      const jpegBtn = container.querySelector('#acm-doc-jpeg-btn');
+      const safeNo = (r.reportNo || 'Draft').replace(/[^a-zA-Z0-9_-]/g, '_');
+      exportDocumentAsJPEG(pageEl, jpegBtn, `BHS_ACM_${safeNo}.jpg`, 800, 40);
+    });
     container.querySelector('#acm-print-btn').addEventListener('click', () => window.print());
   }
 
@@ -3200,48 +3383,11 @@
 
     container.querySelector('#acm-newdoc-print-btn').addEventListener('click', () => window.print());
 
-    container.querySelector('#acm-newdoc-jpeg-btn').addEventListener('click', async () => {
-      if (typeof window.html2canvas === 'undefined') {
-        showModal("Notice", "Export library is still loading. Please try again in a moment.", "alert");
-        return;
-      }
+    container.querySelector('#acm-newdoc-jpeg-btn').addEventListener('click', () => {
       const pageEl = container.querySelector('#acm-newdoc-page');
-      const wrapEl = container.querySelector('#acm-newdoc-scale-wrap');
       const jpegBtn = container.querySelector('#acm-newdoc-jpeg-btn');
-      const origTxt = jpegBtn.textContent;
-      jpegBtn.textContent = 'Preparing photos...';
-      jpegBtn.disabled = true;
-
-      const imgEls = Array.from(pageEl.querySelectorAll('.nd-photo-stage img'));
-      const originalSrcs = imgEls.map(img => img.getAttribute('src') || '');
-      try {
-        await Promise.all(imgEls.map(async (imgEl, idx) => {
-          const src = originalSrcs[idx];
-          if (!src || src.startsWith('data:image/')) return;
-          const dataUrl = await fetchDriveImageAsDataUrl(src);
-          if (dataUrl) imgEl.setAttribute('src', dataUrl);
-        }));
-        jpegBtn.textContent = 'Exporting...';
-        pageEl.style.transform = '';
-        if (wrapEl) { wrapEl.style.width = ''; wrapEl.style.height = ''; }
-        const canvas = await window.html2canvas(pageEl, { scale: 2.5, useCORS: true, allowTaint: false, backgroundColor: '#ffffff' });
-        const link = document.createElement('a');
-        link.href = canvas.toDataURL('image/jpeg', 0.96);
-        link.download = `BHS_ACM_${(r.reportNo || 'Draft').replace(/[^a-zA-Z0-9_-]/g, '_')}.jpg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (err) {
-        console.error(err);
-        showModal("Export Error", "Unable to export JPEG. Please use \"Print / Save as PDF\" instead.", "alert", true);
-      } finally {
-        imgEls.forEach((imgEl, idx) => {
-          if (originalSrcs[idx] && imgEl.getAttribute('src') !== originalSrcs[idx]) imgEl.setAttribute('src', originalSrcs[idx]);
-        });
-        scaleNewMemoView();
-        jpegBtn.textContent = origTxt;
-        jpegBtn.disabled = false;
-      }
+      const safeNo = (r.reportNo || 'Draft').replace(/[^a-zA-Z0-9_-]/g, '_');
+      exportDocumentAsJPEG(pageEl, jpegBtn, `BHS_ACM_${safeNo}.jpg`, 794, 18);
     });
   }
 
