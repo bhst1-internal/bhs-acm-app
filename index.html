@@ -76,17 +76,26 @@
   #acm-root table.list th,#acm-root table.editrows th{text-align:left;font-size:.65rem;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-sec);background-color:var(--input-bg);padding:6px 8px;border-bottom:2px solid var(--line)}
   #acm-root table.list td,#acm-root table.editrows td{font-size:.7rem;color:var(--ink-light);padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
   #acm-root table.list tr:hover td{background:var(--input-bg)}
-  #acm-root .status-chip{font-size:.65rem;font-weight:700;padding:2px 8px;border-radius:999px;display:inline-block}
+  /* Status Chips & Pending Items Hover Tooltip (PPM Reference Style) */
+  #acm-root .status-chip{font-size:.66rem;font-weight:700;padding:2px 8px;border-radius:999px;display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
   #acm-root .chip-open{background:#e5e7eb;color:var(--text-sec)}
   #acm-root .chip-progress{background:#fef3c7;color:var(--warn)}
   #acm-root .chip-done{background:#d1fae5;color:var(--ok)}
   #acm-root .chip-sync{background:#dbeafe;color:#1d4ed8;font-size:.6rem;font-weight:700;padding:1px 6px;border-radius:999px;display:inline-block;margin-left:4px;vertical-align:middle}
+  #acm-root .status-tip-wrap{position:relative;display:inline-flex;align-items:center;cursor:help;outline:none}
+  #acm-root .status-tip-box{display:none;position:absolute;bottom:calc(100% + 8px);right:0;width:265px;background:#111827;color:#f8fafc;border-radius:8px;padding:10px 12px;font-size:.72rem;line-height:1.45;box-shadow:0 10px 25px rgba(0,0,0,.28);z-index:500;text-align:left;white-space:normal;pointer-events:none}
+  #acm-root .status-tip-wrap.tip-down .status-tip-box{bottom:auto;top:calc(100% + 8px);right:auto;left:0}
+  #acm-root .status-tip-wrap:hover .status-tip-box,#acm-root .status-tip-wrap:focus .status-tip-box,#acm-root .status-tip-wrap:focus-within .status-tip-box{display:block}
+  #acm-root .status-tip-title{font-weight:800;color:#fbbf24;text-transform:uppercase;letter-spacing:.04em;font-size:.66rem;margin-bottom:5px;border-bottom:1px solid rgba(255,255,255,.15);padding-bottom:4px}
+  #acm-root .status-tip-list{margin:0;padding-left:15px}
+  #acm-root .status-tip-list li{margin-bottom:3px}
   #acm-root .link-btn{border:none;background:none;color:var(--accent);font-weight:700;font-size:.75rem;cursor:pointer;padding:2px 4px}
   #acm-root .empty-state{text-align:center;padding:34px 10px;color:var(--text-sec);font-size:.875rem}
   #acm-root .form-shell{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:20px 22px 24px}
   #acm-root .form-toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px}
-  #acm-root .form-toolbar .rec-select{display:flex;align-items:center;gap:8px;font-size:.875rem}
+  #acm-root .form-toolbar .rec-select{display:flex;align-items:center;gap:8px;font-size:.875rem;flex-wrap:wrap}
   #acm-root select.recpick{padding:6px 8px;border:1px solid var(--line);border-radius:7px;font-size:.75rem;background:var(--input-bg);color:var(--ink);font-family:ui-monospace,monospace}
+  #acm-root .toolbar-status-box{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;background:#f8fafc;border:1px solid var(--line);border-radius:8px;font-size:.74rem}
   #acm-root .btn{border:none;padding:8px 14px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer;transition:all .15s}
   #acm-root .btn-primary{background:var(--accent);color:#fff}
   #acm-root .btn-primary:hover{background:var(--accent-2)}
@@ -112,7 +121,7 @@
   #acm-root .g4{grid-template-columns:1fr 1fr 1fr 1fr}
   #acm-root .g5{grid-template-columns:repeat(5,1fr)}
   #acm-root .g6{grid-template-columns:repeat(6,1fr)}
-  @media (max-width:720px){#acm-root .g2,#acm-root .g3,#acm-root .g4,#acm-root .g5,#acm-root .g6{grid-template-columns:1fr}}
+  @media (max-width:720px){#acm-root .g2,#acm-root .g3,#acm-root .g4,#acm-root .g5,#acm-root .g6{grid-template-columns:1fr}#acm-root .status-tip-box{width:min(265px,82vw)}}
   #acm-root label.f,#acm-root .f-wrap{display:flex;flex-direction:column;gap:4px;font-size:.75rem;color:var(--ink-light);font-weight:600;min-width:0}
   #acm-root input[type=text],#acm-root input[type=date],#acm-root input[type=time],#acm-root input[type=number],#acm-root textarea,#acm-root select{padding:7px 9px;border:1px solid var(--line);border-radius:7px;font-size:.75rem;font-family:inherit;color:var(--ink);background:var(--input-bg);transition:all .2s}
   #acm-root input.locked-field{background:#e5e7eb;color:#4b5563;cursor:not-allowed;pointer-events:none}
@@ -739,6 +748,7 @@
           if (aEndEl) aEndEl.value = r.actEndTime;
         }
         saveRecords();
+        refreshToolbarStatus(container, r);
         updateHighlights(container, r);
         refreshRefSection();
       });
@@ -789,6 +799,7 @@
             if (aEndEl) aEndEl.value = r.actEndTime;
           }
           saveRecords();
+          refreshToolbarStatus(container, r);
           updateHighlights(container, r);
           refreshRefSection();
         } catch (err) {
@@ -1299,6 +1310,75 @@
     return (confirmValid || hasActionDate || r.actionCat || r.resultCat || r.doneByName || r.checkByName) ? 'progress' : 'open';
   }
 
+  function getStatusLabel(st) {
+    if (st === 'done') return 'Completed';
+    if (st === 'progress') return 'In Progress';
+    return 'Open';
+  }
+
+  // Build detailed Pending Items list for the PPM-style "In Progress" tooltip
+  function getPendingItems(r) {
+    const wordCount = str => (str || '').trim().split(/\s+/).filter(w => w.length > 0).length;
+    const pending = [];
+
+    const agBase = r.actGroup || '';
+    const actGroupValid = agBase.toUpperCase().startsWith('VENDOR')
+      ? agBase.substring(6).replace(/^:\s*/, '').trim().length > 0
+      : agBase.trim() !== '';
+    const hasActionDate = checkReq(r.actionDate) || (checkReq(r.actDd) && checkReq(r.actMm) && checkReq(r.actYy));
+
+    const actMiss = [];
+    if (!hasActionDate) actMiss.push('Date (After photo)');
+    if (!checkReq(r.actDoneBy)) actMiss.push('Done By');
+    if (!actGroupValid) actMiss.push('Group');
+    if (!checkReq(r.actStartTime)) actMiss.push('Start time');
+    if (!checkReq(r.actEndTime)) actMiss.push('End time (After photo)');
+    if (!checkReq(r.actionCat)) actMiss.push('Category');
+    if (wordCount(r.actionDetail) < 2) actMiss.push('Detail (min 2 words)');
+    if (actMiss.length > 0) pending.push(`Action: ${actMiss.join(', ')}`);
+
+    const resMiss = [];
+    if (!checkReq(r.resultCat)) resMiss.push('Category');
+    if (wordCount(r.resultDetail) < 2) resMiss.push('Detail / Status (min 2 words)');
+    if (resMiss.length > 0) pending.push(`Result: ${resMiss.join(', ')}`);
+
+    const f = r.flags || {};
+    const checklistComplete = f.createNotification || f.createWorkOrder || f.releaseWorkOrder || f.gmps || f.timeConfirmation || f.teco || f.businessCompletion;
+    if (!checklistComplete) pending.push('Completion Checklist: Select at least one item');
+
+    const signMiss = [];
+    if ((r.doneByName || '').trim().length < 3) signMiss.push('Done By (TECH)');
+    if ((r.checkByName || '').trim().length < 3) signMiss.push('Check By (TO)');
+    if (!checkReq(r.confirmedByName)) signMiss.push('Confirmed By (TE/E/SE)');
+    if (signMiss.length > 0) pending.push(`Sign-off: ${signMiss.join(', ')}`);
+
+    return pending;
+  }
+
+  // Render Status chip with PPM-style hover/focus Pending Items tooltip for "In Progress"
+  function renderStatusChipHtml(r, tipDown = false, openExtras = null) {
+    const st = getStatus(r);
+    const lbl = getStatusLabel(st);
+    const cls = st === 'done' ? 'chip-done' : (st === 'progress' ? 'chip-progress' : 'chip-open');
+    if (st === 'progress') {
+      const items = getPendingItems(r);
+      const listHtml = items.length
+        ? `<ul class="status-tip-list">${items.map(it => `<li>${escHtml(it)}</li>`).join('')}</ul>`
+        : `<div>Complete remaining fields to close this memo.</div>`;
+      return `<span class="status-tip-wrap ${tipDown ? 'tip-down' : ''}" tabindex="0"><span class="status-chip ${cls}">${lbl} ⓘ</span><div class="status-tip-box"><div class="status-tip-title">Pending Items</div>${listHtml}</div></span>`;
+    }
+    if (st === 'open' && openExtras) {
+      return `<span class="status-chip ${cls}" ${openExtras.tooltipAttr || ''} style="${openExtras.chipStyle || ''}">${lbl}</span>`;
+    }
+    return `<span class="status-chip ${cls}">${lbl}</span>`;
+  }
+
+  function refreshToolbarStatus(container, r) {
+    const box = container.querySelector('#acm-toolbar-status');
+    if (!box) return;
+    box.innerHTML = `<span style="font-weight:700;color:#475569">Status:</span>${renderStatusChipHtml(r, true)}${r.isDraft ? `<span class="status-chip chip-open" style="border:1px dashed #94a3b8">Draft</span>` : ''}${!r.isDraft && r.syncPending ? `<span class="chip-sync">Pending Cloud Sync</span>` : ''}`;
+  }
+
   // =========================================================
   // AUTO-POPULATED "HISTORY (LAST 3 CHANGING DATES)" HELPERS
   // =========================================================
@@ -1591,34 +1671,13 @@
       if (r.actionDate) { const p = String(r.actionDate).substring(0, 10).split('-'); if (p.length === 3) actDateStr = `${p[2]}/${p[1]}/${p[0].slice(-2)}`; } 
       else if (r.actDd || r.actMm || r.actYy) { actDateStr = `${(r.actDd||'--').padStart(2,'0')}/${(r.actMm||'--').padStart(2,'0')}/${r.actYy||'--'}`; }
 
-      let tooltipAttr = '';
-      let chipClass = st === 'done' ? 'chip-done' : (st === 'progress' ? 'chip-progress' : 'chip-open');
-      let chipStyle = '';
-      let chipText = st === 'done' ? 'Completed' : (st === 'progress' ? 'In progress' : 'Open');
-
-      if (st === 'progress') {
-        const wordCount = str => (str || '').trim().split(/\s+/).filter(w => w.length > 0).length;
-        let agBase = r.actGroup || '', actGroupValid = agBase.toUpperCase().startsWith('VENDOR') ? agBase.substring(6).replace(/^:\s*/, '').trim().length > 0 : agBase.trim() !== '';
-        const hasActionDate = checkReq(r.actionDate) || (checkReq(r.actDd) && checkReq(r.actMm) && checkReq(r.actYy));
-        let pItems = [];
-        
-        if (!(hasActionDate && checkReq(r.actDoneBy) && actGroupValid && checkReq(r.actStartTime) && checkReq(r.actEndTime) && checkReq(r.actionCat) && wordCount(r.actionDetail) >= 2)) pItems.push('Action Details');
-        if (!(checkReq(r.resultCat) && wordCount(r.resultDetail) >= 2)) pItems.push('Result Details');
-        const f = r.flags || {};
-        if (!(f.createNotification || f.createWorkOrder || f.releaseWorkOrder || f.gmps || f.timeConfirmation || f.teco || f.businessCompletion)) pItems.push('Checklist');
-        if (!((r.doneByName || '').trim().length >= 3 && (r.checkByName || '').trim().length >= 3 && checkReq(r.confirmedByName))) pItems.push('Sign-off');
-        
-        if (pItems.length > 0) tooltipAttr = `data-tooltip="Missing: ${pItems.join(', ')}"`;
-        chipStyle = 'cursor:help;';
-      }
-
+      let openExtras = null;
       if (st === 'open') {
         const t0 = getExactTs(r.happeningDate, r.dd, r.mm, r.yy, r.timeOfHappening);
         if (t0 && r.urgency && URGENCY_MS[r.urgency]) {
           const targetTime = t0 + URGENCY_MS[r.urgency];
           const now = Date.now();
           if (now > targetTime) {
-            chipStyle = 'background-color:#fee2e2; color:var(--crit); box-shadow:0 0 0 1px var(--crit) inset; cursor:help;';
             const overdueMs = now - targetTime;
             let overdueStr = '';
             if (r.urgency === 'veryCritical') {
@@ -1632,13 +1691,17 @@
               const days = Math.floor(overdueMs / 86400000);
               overdueStr = `${days} day${days !== 1 ? 's' : ''}`;
             }
-            tooltipAttr = `data-tooltip="SLA Overdue by ${overdueStr}"`;
+            openExtras = {
+              chipStyle: 'background-color:#fee2e2; color:var(--crit); box-shadow:0 0 0 1px var(--crit) inset; cursor:help;',
+              tooltipAttr: `data-tooltip="SLA Overdue by ${overdueStr}"`
+            };
           }
         }
       }
 
       const syncTag = r.syncPending ? `<span class="chip-sync">Pending Sync</span>` : '';
-      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td style="white-space:nowrap">${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td class="mono-font">${actDateStr}</td><td><span class="status-chip ${chipClass}" ${tooltipAttr} style="${chipStyle}">${chipText}</span>${syncTag}</td></tr>`;
+      const statusHtml = renderStatusChipHtml(r, false, openExtras) + syncTag;
+      return `<tr><td><button class="link-btn mono-font" data-act="open" data-id="${r.createdAt}" style="text-decoration:underline;padding:0;text-align:left;font-weight:700">${r.reportNo||'—'}</button></td><td class="mono-font">${fmtDate(r)}</td><td>${r.title||'<span style="color:var(--line-dark)">Untitled</span>'}</td><td>${r.lineEquipment||'—'}</td><td style="white-space:nowrap">${r.equipNo||'—'}</td><td>${r.conveyorItem||'—'}</td><td>${catList.length?catList.join(', '):'—'}</td><td>${typeList.length?typeList.join(', '):'—'}</td><td>${urg}</td><td class="mono-font">${actDateStr}</td><td>${statusHtml}</td></tr>`;
     }).join('');
     
     const tContainer = document.getElementById('dash-table-container');
@@ -2535,9 +2598,10 @@
     let agBase = r.actGroup||'', agVendor = ''; if(agBase.toUpperCase().startsWith('VENDOR')){ agBase = 'Vendor'; agVendor = (r.actGroup||'').substring(6).replace(/^:\s*/,'').trim(); }
     const currentLine = r.lineEquipment || '', noOptions = (currentLine && EQUIP_DB[currentLine]) ? Object.keys(EQUIP_DB[currentLine]).sort() : [];
     if(currentLine) { noOptions.push('OTHERS'); noOptions.push('CART'); }
-    container.innerHTML = `<div class="form-shell"><div class="form-toolbar"><div class="rec-select"><span style="font-weight:700">Report No.:</span><select class="recpick" id="acm-recpick">${options}</select></div><div class="btn-row"><button class="btn btn-ghost" id="acm-new-btn">✚ Add New Memo</button><button class="btn btn-danger" id="acm-del-btn">Delete ✘</button><button class="btn btn-primary" id="acm-submit-btn" style="background:var(--ok)">Submit ✔</button><button class="btn btn-primary" id="acm-view-btn">View Memo ➜</button></div></div><div class="sec"><div class="sec-title">Notification &amp; Work Order</div><div class="grid g5">${field('Notification No.','notificationNo',r.notificationNo)}${field('Work Order No.','workOrderNo',r.workOrderNo)}${selectField('Maintenance Type','maintenanceType',r.maintenanceType,['Breakdown','Corrective','Preventive'])}${field('Report No. (BHS/ACM)','reportNo',r.reportNo,'text','readonly style="background:var(--line);cursor:not-allowed"')}${field('Time of Happening','timeOfHappening',r.timeOfHappening,'time','readonly class="locked-field" tabindex="-1"')}</div><div class="grid g4" style="margin-top:10px">${field('Date','happeningDate',r.happeningDate,'date','readonly class="locked-field" tabindex="-1"')}${selectField('Issued By','issuedBy',r.issuedBy,ISSUED_BY_NAMES)}${groupField('Group','issuedGroup',igBase,igVendor)}${field('Checked (TA/ST)','checkedBy',r.checkedBy)}</div></div><div class="sec"><div class="sec-title">Title &amp; Equipment</div><div class="grid g2">${searchableSelectField('Title', 'title', r.title, TITLE_OPTIONS, 'title-list')}${field('Conveyor/Item','conveyorItem',r.conveyorItem,'text','readonly style="background:var(--line);cursor:not-allowed"')}</div><div class="grid g2" style="margin-top:10px">${searchableSelectField('Line/Equipment','lineEquipment',r.lineEquipment,Object.keys(EQUIP_DB).sort(),'line-list')}${searchableSelectField('No.','equipNo',r.equipNo,noOptions,'no-list')}</div></div>${renderRefImageSectionHtml(r)}<div class="sec" id="sec-category"><div class="sec-title">Category &amp; Type of Error</div><div class="check-row">${Object.entries(CATS).map(([k,l])=>checkbox(l,(r.cat1||{})[k],'cat1.'+k)).join('')}</div><div class="check-row" style="margin-top:8px">${Object.entries(CATS2).map(([k,l])=>checkbox(l,(r.cat2||{})[k],'cat2.'+k)).join('')}</div></div><div class="sec" id="sec-urgency"><div class="sec-title">Degree of Urgency</div><div class="radio-row">${Object.entries(URGENCY).map(([k,l])=>radio('urgency',l,k,r.urgency===k,'urgency')).join('')}</div></div><div class="sec"><div class="sec-title">Reason / Detail</div>${field('Describe the reason and detail of the fault','reasonDetail',r.reasonDetail,'textarea')}</div><div class="sec"><div class="sec-title">Monitoring Status (Progress)</div><table class="editrows"><thead><tr><th>Insp. Date</th><th>By</th><th>Result</th><th>Insp. Date</th><th>By</th><th>Result</th></tr></thead><tbody>${(r.monitoring||[]).map((m,i)=>`<tr><td><input type="date" data-path="monitoring.${i}.d1" value="${m.d1||''}"/></td><td><input type="text" data-path="monitoring.${i}.b1" value="${escAttr(m.b1)}"/></td><td><input type="text" data-path="monitoring.${i}.r1" value="${escAttr(m.r1)}"/></td><td><input type="date" data-path="monitoring.${i}.d2" value="${m.d2||''}"/></td><td><input type="text" data-path="monitoring.${i}.b2" value="${escAttr(m.b2)}"/></td><td><input type="text" data-path="monitoring.${i}.r2" value="${escAttr(m.r2)}"/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Spare Part Status</div><div class="hint" style="font-size:.65rem;color:var(--text-sec);margin-bottom:6px">Row 1</div><div class="grid g5">${field('Stock:','spStock',r.spStock)}${field('Stock Qty','spStockQty',r.spStockQty)}${field('Stock: Critical','spStockCritical',r.spStockCritical)}${field('Checked by','spCheckedBy',r.spCheckedBy)}${field('Qty','spQty',r.spQty)}</div><div class="hint" style="font-size:.65rem;color:var(--text-sec);margin:10px 0 6px">Row 2</div><div class="grid g5">${field('Location','spLocation',r.spLocation)}${field('Check by','spCheckBy',r.spCheckBy)}${field('Request date','spRequestDate',r.spRequestDate,'date')}${field('Delivery date','spDeliveryDate',r.spDeliveryDate,'date')}${field('Location (2)','spLocation2',r.spLocation2)}</div></div><div class="sec"><div class="sec-title">Request of Action</div>${field('Request of action','requestOfAction',r.requestOfAction,'textarea')}</div><div class="sec"><div class="sec-title">Action</div><div class="grid g3">${field('Date','actionDate',r.actionDate,'date','readonly class="locked-field" tabindex="-1"')}${multiSelectField('Done By','actDoneBy',r.actDoneBy,TECH_NAMES)}${groupField('Group','actGroup',agBase,agVendor)}</div><div class="grid g2" style="margin-top:10px">${field('Start time','actStartTime',r.actStartTime,'time')}${field('End time','actEndTime',r.actEndTime,'time','readonly class="locked-field" tabindex="-1"')}</div><div style="margin-top:10px"><div class="sec-title" style="font-size:.65rem">Category</div><div class="radio-row">${Object.entries(ACTION_CAT).map(([k,l])=>radio('actionCat',l,k,r.actionCat===k,'actionCat')).join('')}</div></div><div style="margin-top:10px">${field('Detail','actionDetail',r.actionDetail,'textarea')}</div></div><div class="sec" id="sec-history"><div class="sec-header"><div class="sec-title">History (Last 3 Changing Dates)</div><button type="button" class="btn btn-ghost" id="acm-history-refresh-btn" style="padding:4px 10px;font-size:.72rem" title="Re-populate from previous records matching Title, Line/Equipment, and No.">↻ Refresh from Records</button></div><div id="acm-history-hint" class="history-hint ${historySyncInfo.matchedCount > 0 ? 'has-matches' : ''}">${esc(getHistoryHintText(historySyncInfo))}</div><table class="editrows"><thead><tr><th>#</th><th style="width:155px">Date</th><th>Remark</th></tr></thead><tbody>${(r.history||[]).map((h,i)=>`<tr><td style="width:30px">${i+1})</td><td><input type="date" data-path="history.${i}.date" value="${escAttr(h.date)}"/></td><td><input type="text" data-path="history.${i}.remark" value="${escAttr(h.remark)}" placeholder="Auto-filled from previous matching memos or enter manually..."/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Result</div><div class="radio-row">${Object.entries(RESULT_CAT).map(([k,l])=>radio('resultCat',l,k,r.resultCat===k,'resultCat')).join('')}</div><div class="grid g4" style="margin-top:10px">${field('Speed (m/min)','paramSpeed',r.paramSpeed)}${field('Temp (°C)','paramTemp',r.paramTemp)}${field('Current (A)','paramCurrent',r.paramCurrent)}${field('Voltage (V)','paramVoltage',r.paramVoltage)}</div><div style="margin-top:10px">${field('Detail / Status','resultDetail',r.resultDetail,'textarea')}</div></div><div class="sec"><div class="sec-title">Parts Records</div><table class="editrows"><thead><tr><th>No.</th><th>Item/Equipment name</th><th>Specification</th><th>Part</th><th>Qty</th><th>Dismantle part status</th><th>SAP No / Others</th></tr></thead><tbody>${(r.parts||[]).map((p,i)=>`<tr><td style="width:30px">${i+1}</td><td><input type="text" data-path="parts.${i}.item" value="${escAttr(p.item)}"/></td><td><input type="text" data-path="parts.${i}.spec" value="${escAttr(p.spec)}"/></td><td><input type="text" data-path="parts.${i}.part" value="${escAttr(p.part)}"/></td><td><input type="text" data-path="parts.${i}.qty" value="${escAttr(p.qty)}"/></td><td><input type="text" data-path="parts.${i}.dismantle" value="${escAttr(p.dismantle)}"/></td><td><input type="text" data-path="parts.${i}.sap" value="${escAttr(p.sap)}"/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Completion Checklist</div><div class="check-row">${checkbox('Create Notification',(r.flags||{}).createNotification,'flags.createNotification')}${checkbox('Create Work Order',(r.flags||{}).createWorkOrder,'flags.createWorkOrder')}${checkbox('Release Work Order',(r.flags||{}).releaseWorkOrder,'flags.releaseWorkOrder')}${checkbox('GMPS',(r.flags||{}).gmps,'flags.gmps')}</div><div class="check-row" style="margin-top:8px">${checkbox('Time Confirmation',(r.flags||{}).timeConfirmation,'flags.timeConfirmation')}${checkbox('TECO',(r.flags||{}).teco,'flags.teco')}${checkbox('Business Completion',(r.flags||{}).businessCompletion,'flags.businessCompletion')}</div></div><div class="sec"><div class="sec-title">Sign-off</div><div class="grid g3">${multiSelectField('Done By (TECH)','doneByName',r.doneByName,TECH_NAMES,true)}${selectField('Check By (TO)','checkByName',r.checkByName,TO_NAMES)}${selectField('Confirmed By (TE/E/SE)','confirmedByName',r.confirmedByName,CONF_NAMES)}</div></div></div>`;
+    container.innerHTML = `<div class="form-shell"><div class="form-toolbar"><div class="rec-select"><span style="font-weight:700">Report No.:</span><select class="recpick" id="acm-recpick">${options}</select><div class="toolbar-status-box" id="acm-toolbar-status"></div></div><div class="btn-row"><button type="button" class="btn btn-ghost" id="acm-new-btn">✚ Add New Memo</button><button type="button" class="btn btn-danger" id="acm-del-btn">Delete ✘</button><button type="button" class="btn btn-primary" id="acm-submit-btn" style="background:var(--ok)">Submit ✔</button><button type="button" class="btn btn-primary" id="acm-view-btn">View Memo ➜</button></div></div><div class="sec"><div class="sec-title">Notification &amp; Work Order</div><div class="grid g5">${field('Notification No.','notificationNo',r.notificationNo)}${field('Work Order No.','workOrderNo',r.workOrderNo)}${selectField('Maintenance Type','maintenanceType',r.maintenanceType,['Breakdown','Corrective','Preventive'])}${field('Report No. (BHS/ACM)','reportNo',r.reportNo,'text','readonly style="background:var(--line);cursor:not-allowed"')}${field('Time of Happening','timeOfHappening',r.timeOfHappening,'time','readonly class="locked-field" tabindex="-1"')}</div><div class="grid g4" style="margin-top:10px">${field('Date','happeningDate',r.happeningDate,'date','readonly class="locked-field" tabindex="-1"')}${selectField('Issued By','issuedBy',r.issuedBy,ISSUED_BY_NAMES)}${groupField('Group','issuedGroup',igBase,igVendor)}${field('Checked (TA/ST)','checkedBy',r.checkedBy)}</div></div><div class="sec"><div class="sec-title">Title &amp; Equipment</div><div class="grid g2">${searchableSelectField('Title', 'title', r.title, TITLE_OPTIONS, 'title-list')}${field('Conveyor/Item','conveyorItem',r.conveyorItem,'text','readonly style="background:var(--line);cursor:not-allowed"')}</div><div class="grid g2" style="margin-top:10px">${searchableSelectField('Line/Equipment','lineEquipment',r.lineEquipment,Object.keys(EQUIP_DB).sort(),'line-list')}${searchableSelectField('No.','equipNo',r.equipNo,noOptions,'no-list')}</div></div>${renderRefImageSectionHtml(r)}<div class="sec" id="sec-category"><div class="sec-title">Category &amp; Type of Error</div><div class="check-row">${Object.entries(CATS).map(([k,l])=>checkbox(l,(r.cat1||{})[k],'cat1.'+k)).join('')}</div><div class="check-row" style="margin-top:8px">${Object.entries(CATS2).map(([k,l])=>checkbox(l,(r.cat2||{})[k],'cat2.'+k)).join('')}</div></div><div class="sec" id="sec-urgency"><div class="sec-title">Degree of Urgency</div><div class="radio-row">${Object.entries(URGENCY).map(([k,l])=>radio('urgency',l,k,r.urgency===k,'urgency')).join('')}</div></div><div class="sec"><div class="sec-title">Reason / Detail</div>${field('Describe the reason and detail of the fault','reasonDetail',r.reasonDetail,'textarea')}</div><div class="sec"><div class="sec-title">Monitoring Status (Progress)</div><table class="editrows"><thead><tr><th>Insp. Date</th><th>By</th><th>Result</th><th>Insp. Date</th><th>By</th><th>Result</th></tr></thead><tbody>${(r.monitoring||[]).map((m,i)=>`<tr><td><input type="date" data-path="monitoring.${i}.d1" value="${m.d1||''}"/></td><td><input type="text" data-path="monitoring.${i}.b1" value="${escAttr(m.b1)}"/></td><td><input type="text" data-path="monitoring.${i}.r1" value="${escAttr(m.r1)}"/></td><td><input type="date" data-path="monitoring.${i}.d2" value="${m.d2||''}"/></td><td><input type="text" data-path="monitoring.${i}.b2" value="${escAttr(m.b2)}"/></td><td><input type="text" data-path="monitoring.${i}.r2" value="${escAttr(m.r2)}"/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Spare Part Status</div><div class="hint" style="font-size:.65rem;color:var(--text-sec);margin-bottom:6px">Row 1</div><div class="grid g5">${field('Stock:','spStock',r.spStock)}${field('Stock Qty','spStockQty',r.spStockQty)}${field('Stock: Critical','spStockCritical',r.spStockCritical)}${field('Checked by','spCheckedBy',r.spCheckedBy)}${field('Qty','spQty',r.spQty)}</div><div class="hint" style="font-size:.65rem;color:var(--text-sec);margin:10px 0 6px">Row 2</div><div class="grid g5">${field('Location','spLocation',r.spLocation)}${field('Check by','spCheckBy',r.spCheckBy)}${field('Request date','spRequestDate',r.spRequestDate,'date')}${field('Delivery date','spDeliveryDate',r.spDeliveryDate,'date')}${field('Location (2)','spLocation2',r.spLocation2)}</div></div><div class="sec"><div class="sec-title">Request of Action</div>${field('Request of action','requestOfAction',r.requestOfAction,'textarea')}</div><div class="sec"><div class="sec-title">Action</div><div class="grid g3">${field('Date','actionDate',r.actionDate,'date','readonly class="locked-field" tabindex="-1"')}${multiSelectField('Done By','actDoneBy',r.actDoneBy,TECH_NAMES)}${groupField('Group','actGroup',agBase,agVendor)}</div><div class="grid g2" style="margin-top:10px">${field('Start time','actStartTime',r.actStartTime,'time')}${field('End time','actEndTime',r.actEndTime,'time','readonly class="locked-field" tabindex="-1"')}</div><div style="margin-top:10px"><div class="sec-title" style="font-size:.65rem">Category</div><div class="radio-row">${Object.entries(ACTION_CAT).map(([k,l])=>radio('actionCat',l,k,r.actionCat===k,'actionCat')).join('')}</div></div><div style="margin-top:10px">${field('Detail','actionDetail',r.actionDetail,'textarea')}</div></div><div class="sec" id="sec-history"><div class="sec-header"><div class="sec-title">History (Last 3 Changing Dates)</div><button type="button" class="btn btn-ghost" id="acm-history-refresh-btn" style="padding:4px 10px;font-size:.72rem" title="Re-populate from previous records matching Title, Line/Equipment, and No.">↻ Refresh from Records</button></div><div id="acm-history-hint" class="history-hint ${historySyncInfo.matchedCount > 0 ? 'has-matches' : ''}">${esc(getHistoryHintText(historySyncInfo))}</div><table class="editrows"><thead><tr><th>#</th><th style="width:155px">Date</th><th>Remark</th></tr></thead><tbody>${(r.history||[]).map((h,i)=>`<tr><td style="width:30px">${i+1})</td><td><input type="date" data-path="history.${i}.date" value="${escAttr(h.date)}"/></td><td><input type="text" data-path="history.${i}.remark" value="${escAttr(h.remark)}" placeholder="Auto-filled from previous matching memos or enter manually..."/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Result</div><div class="radio-row">${Object.entries(RESULT_CAT).map(([k,l])=>radio('resultCat',l,k,r.resultCat===k,'resultCat')).join('')}</div><div class="grid g4" style="margin-top:10px">${field('Speed (m/min)','paramSpeed',r.paramSpeed)}${field('Temp (°C)','paramTemp',r.paramTemp)}${field('Current (A)','paramCurrent',r.paramCurrent)}${field('Voltage (V)','paramVoltage',r.paramVoltage)}</div><div style="margin-top:10px">${field('Detail / Status','resultDetail',r.resultDetail,'textarea')}</div></div><div class="sec"><div class="sec-title">Parts Records</div><table class="editrows"><thead><tr><th>No.</th><th>Item/Equipment name</th><th>Specification</th><th>Part</th><th>Qty</th><th>Dismantle part status</th><th>SAP No / Others</th></tr></thead><tbody>${(r.parts||[]).map((p,i)=>`<tr><td style="width:30px">${i+1}</td><td><input type="text" data-path="parts.${i}.item" value="${escAttr(p.item)}"/></td><td><input type="text" data-path="parts.${i}.spec" value="${escAttr(p.spec)}"/></td><td><input type="text" data-path="parts.${i}.part" value="${escAttr(p.part)}"/></td><td><input type="text" data-path="parts.${i}.qty" value="${escAttr(p.qty)}"/></td><td><input type="text" data-path="parts.${i}.dismantle" value="${escAttr(p.dismantle)}"/></td><td><input type="text" data-path="parts.${i}.sap" value="${escAttr(p.sap)}"/></td></tr>`).join('')}</tbody></table></div><div class="sec"><div class="sec-title">Completion Checklist</div><div class="check-row">${checkbox('Create Notification',(r.flags||{}).createNotification,'flags.createNotification')}${checkbox('Create Work Order',(r.flags||{}).createWorkOrder,'flags.createWorkOrder')}${checkbox('Release Work Order',(r.flags||{}).releaseWorkOrder,'flags.releaseWorkOrder')}${checkbox('GMPS',(r.flags||{}).gmps,'flags.gmps')}</div><div class="check-row" style="margin-top:8px">${checkbox('Time Confirmation',(r.flags||{}).timeConfirmation,'flags.timeConfirmation')}${checkbox('TECO',(r.flags||{}).teco,'flags.teco')}${checkbox('Business Completion',(r.flags||{}).businessCompletion,'flags.businessCompletion')}</div></div><div class="sec"><div class="sec-title">Sign-off</div><div class="grid g3">${multiSelectField('Done By (TECH)','doneByName',r.doneByName,TECH_NAMES,true)}${selectField('Check By (TO)','checkByName',r.checkByName,TO_NAMES)}${selectField('Confirmed By (TE/E/SE)','confirmedByName',r.confirmedByName,CONF_NAMES)}</div></div><div class="form-toolbar" style="justify-content:flex-end;margin-top:14px;margin-bottom:0"><div class="btn-row"><button type="button" class="btn btn-primary" id="acm-submit-btn-bottom" style="background:var(--ok)">Submit ✔</button><button type="button" class="btn btn-primary" id="acm-view-btn-bottom">View Memo ➜</button></div></div></div>`;
 
     bindRefImageSection(container, r);
+    refreshToolbarStatus(container, r);
     updateHighlights(container, r);
     const wrapAction = async () => { if(state.isDirty){ const discard = await showModal("Unsaved Changes Detected", "You have entered or modified data that has not been submitted yet.\n\nPlease click \"Submit ✔\" to record your data, or click \"Discard Data\" to abandon your recent changes.", "unsaved"); if(!discard) return false; revertActiveRecord(); } return true; };
 
@@ -2561,7 +2625,9 @@
         state.records = state.records.filter(x => String(x.createdAt) !== String(r.createdAt)); state.activeId = state.records.length ? state.records[0].createdAt : null; state.showErrors = false; state.isDirty = false; state.refImgExpanded = false; await saveRecords(); render(); await showModal("Deleted", navigator.onLine ? "Record removed successfully." : "Record removed locally. Cloud deletion queued.", "alert");
       } else if(pass !== null) await showModal("Error", "Incorrect password. Deletion cancelled.", "alert", true);
     });
-    container.querySelector('#acm-view-btn').addEventListener('click', async () => { if(await wrapAction()){ state.tab = 'document'; render(); } });
+    const goViewMemo = async () => { if(await wrapAction()){ state.tab = 'document'; render(); } };
+    container.querySelector('#acm-view-btn').addEventListener('click', goViewMemo);
+    container.querySelector('#acm-view-btn-bottom').addEventListener('click', goViewMemo);
 
     // Force-refresh History (Last 3 Changing Dates) from matching records
     container.querySelector('#acm-history-refresh-btn').addEventListener('click', () => {
@@ -2571,7 +2637,7 @@
       saveRecords();
     });
     
-    container.querySelector('#acm-submit-btn').addEventListener('click', async () => {
+    const handleSubmit = async () => {
       state.showErrors = true; let errs = [];
       if(!checkReq(r.happeningDate)) errs.push("[Notification & Work Order] Date (Capture 'Before' photo in Reference Image)");
       if(!checkReq(r.issuedBy)) errs.push("[Notification & Work Order] Issued By");
@@ -2591,7 +2657,7 @@
       }
 
       const statusLogic = getStatus(r);
-      r.status = statusLogic==='done'?'Completed':statusLogic==='progress'?'In progress':'Open';
+      r.status = getStatusLabel(statusLogic);
       r.isDraft = false;
       r.syncPending = true;
       r.updatedAt = Date.now();
@@ -2599,6 +2665,7 @@
       state.isDirty = false;
       state.cleanActiveRecord = JSON.parse(JSON.stringify(r));
       await saveRecords();
+      refreshToolbarStatus(container, r);
 
       if (!navigator.onLine) {
         state.isOnline = false;
@@ -2610,8 +2677,9 @@
         return;
       }
 
-      const btn = container.querySelector('#acm-submit-btn'), ogTxt = btn.innerHTML;
-      btn.innerHTML = 'Saving to Sheet ⏳'; btn.style.pointerEvents = 'none';
+      const submitBtns = [container.querySelector('#acm-submit-btn'), container.querySelector('#acm-submit-btn-bottom')].filter(Boolean);
+      const origTxts = submitBtns.map(b => b.innerHTML);
+      submitBtns.forEach(b => { b.innerHTML = 'Saving to Sheet ⏳'; b.disabled = true; b.style.pointerEvents = 'none'; });
       try {
         await postPayloadWithTimeout({ ...r, syncPending: false }, 25000);
         r.syncPending = false;
@@ -2624,11 +2692,13 @@
         console.error(e);
         const html = `<div class="modal-offline-banner submit">💾 Saved Offline &amp; Queued</div><div>Could not reach Google Sheets right now. Your record (<b>BHS/ACM ${escHtml(r.reportNo)}</b>) is safely queued locally and will upload automatically once internet stabilizes.</div>`;
         await showModal("Saved Offline", html, "offline-submit");
-        btn.innerHTML = ogTxt; btn.style.pointerEvents = 'auto';
+        submitBtns.forEach((b, idx) => { b.innerHTML = origTxts[idx]; b.disabled = false; b.style.pointerEvents = 'auto'; });
         state.tab = 'document';
         render();
       }
-    });
+    };
+    container.querySelector('#acm-submit-btn').addEventListener('click', handleSubmit);
+    container.querySelector('#acm-submit-btn-bottom').addEventListener('click', handleSubmit);
 
     // Multi-select Technician dropdowns (Action -> Done By & Sign-off -> Done By (TECH))
     container.querySelectorAll('.multi-dd').forEach(wrapper => {
@@ -2672,6 +2742,7 @@
         state.isDirty = true;
         setByPath(r, path, joined);
         saveRecords();
+        refreshToolbarStatus(container, r);
         updateHighlights(container, r);
       }));
     });
@@ -2679,7 +2750,7 @@
     container.querySelectorAll('[data-calc-group]').forEach(el => el.addEventListener(el.tagName==='SELECT'?'change':'input', () => {
       state.isDirty = true; const wrp = el.closest('div'), bVal = wrp.querySelector('[data-part="base"]')?.value||'', vVal = wrp.querySelector('[data-part="vendor"]')?.value||'';
       setByPath(r, el.getAttribute('data-calc-group'), bVal==='Vendor'?(vVal?`Vendor: ${vVal}`:'Vendor'):bVal); saveRecords();
-      if(el.getAttribute('data-part')==='base') render(); else updateHighlights(container, r);
+      if(el.getAttribute('data-part')==='base') render(); else { refreshToolbarStatus(container, r); updateHighlights(container, r); }
     }));
 
     container.querySelectorAll('[data-path]').forEach(el => el.addEventListener((el.type==='checkbox'||el.type==='radio'||el.tagName==='SELECT')?'change':'input', async () => {
@@ -2725,7 +2796,7 @@
         updateHistoryDom(container, r, info);
       }
 
-      saveRecords(); updateHighlights(container, r);
+      saveRecords(); refreshToolbarStatus(container, r); updateHighlights(container, r);
     }));
   }
 
