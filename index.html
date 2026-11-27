@@ -12,7 +12,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>BHS Operation &amp; Maintenance Action Memo (ACM)</title>
 <style>
-  html,body{margin:0;padding:0;background:#f3f4f6;min-height:100%}
+  html,body{margin:0;padding:0;background:#f3f4f6;min-height:100%;overscroll-behavior-y:contain}
   #acm-root,#acm-root *{box-sizing:border-box}
   #acm-root{--ink:#1f2937;--ink-light:#374151;--paper:#ffffff;--line:#e5e7eb;--line-dark:#9ca3af;--accent:#2563eb;--accent-2:#1d4ed8;--bg:#f3f4f6;--input-bg:#f9fafb;--text-sec:#6b7280;--ok:#059669;--warn:#d97706;--crit:#dc2626;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;color:var(--ink);background:var(--bg);padding:0;min-height:100%;font-size:.875rem;line-height:1.4;position:relative}
   .mono-font,#acm-root input[type=date],#acm-root input[type=time],#acm-root .kpi-value,#acm-root .doc-footer-code{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace}
@@ -274,47 +274,47 @@
   #acm-root .nd-sign-line{width:92%;border-top:1px solid #0f172a;padding-top:2.5px;font-size:8.8px;font-weight:700;color:#334155}
   #acm-root .nd-foot{display:flex;justify-content:space-between;align-items:center;padding-top:4px;border-top:1px solid #cbd5e1;font-size:8.2px;color:#475569;margin-top:4px}
   #acm-root .nd-foot-code{font-size:8.8px;font-weight:700;color:#1e293b;margin:0}
+  /* App Update Notification Banner (PPM Reference Style) */
+  #acm-update-banner{position:fixed;left:12px;right:12px;bottom:14px;max-width:520px;margin:0 auto;background:#111827;color:#f9fafb;border:1px solid #374151;border-radius:12px;padding:12px 14px;box-shadow:0 12px 28px rgba(0,0,0,.32);z-index:99990;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;animation:acmFadeIn .2s ease}
+  #acm-update-banner .upd-title{font-size:.82rem;font-weight:800;color:#ffffff}
+  #acm-update-banner .upd-notes{font-size:.73rem;color:#d1d5db;margin-top:2px;line-height:1.35}
+  #acm-update-banner .upd-actions{display:flex;gap:6px;flex-shrink:0}
+  #acm-update-banner .upd-btn-now{border:none;background:#2563eb;color:#ffffff;padding:7px 12px;border-radius:8px;font-size:.76rem;font-weight:700;cursor:pointer}
+  #acm-update-banner .upd-btn-now:hover{background:#1d4ed8}
+  #acm-update-banner .upd-btn-now:disabled{opacity:.7;cursor:wait}
+  #acm-update-banner .upd-btn-later{border:1px solid #4b5563;background:transparent;color:#d1d5db;padding:7px 10px;border-radius:8px;font-size:.76rem;font-weight:700;cursor:pointer}
+  #acm-update-banner .upd-btn-later:hover{background:rgba(255,255,255,.08)}
+  /* Exit Confirmation Guard Modal & App Closed Safely Screen (PPM Reference Style) */
+  #acm-exit-overlay{position:fixed;inset:0;background:rgba(15,23,42,.72);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .18s ease;backdrop-filter:blur(2px);font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+  #acm-exit-overlay.active{opacity:1;pointer-events:auto}
+  #acm-exit-box{background:#ffffff;border:1px solid #e5e7eb;border-radius:14px;padding:20px 22px;width:94%;max-width:420px;box-shadow:0 16px 36px rgba(0,0,0,.24);color:#1f2937}
+  #acm-exit-box.shake{animation:acmShake .32s ease}
+  @keyframes acmShake{0%,100%{transform:translateX(0)}22%{transform:translateX(-6px)}45%{transform:translateX(6px)}68%{transform:translateX(-4px)}85%{transform:translateX(4px)}}
+  #acm-exit-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;font-size:.74rem;font-weight:800;margin-bottom:10px}
+  #acm-exit-badge.warn{background:#fef3c7;color:#92400e;border:1px solid #fcd34d}
+  #acm-exit-badge.info{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe}
+  #acm-exit-badge.neutral{background:#f3f4f6;color:#374151;border:1px solid #d1d5db}
+  #acm-exit-title{font-size:1rem;font-weight:800;color:#111827;margin-bottom:8px}
+  #acm-exit-msg{font-size:.84rem;color:#374151;line-height:1.5;margin-bottom:12px}
+  #acm-exit-hint{font-size:.72rem;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:7px;padding:6px 9px;margin-bottom:14px;display:none;font-weight:600}
+  #acm-exit-hint.visible{display:block}
+  #acm-exit-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+  #acm-exit-actions button{border:none;padding:9px 14px;border-radius:8px;font-size:.82rem;font-weight:700;cursor:pointer;transition:all .15s}
+  #acm-exit-stay{background:#2563eb;color:#ffffff;flex:1}
+  #acm-exit-stay:hover{background:#1d4ed8}
+  #acm-exit-leave{background:#fee2e2;color:#dc2626}
+  #acm-exit-leave:hover{background:#fca5a5}
+  @keyframes acmExitFadeIn{from{opacity:0}to{opacity:1}}
+  #acm-exit-toast{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;background:#000000;color:#ffffff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;box-sizing:border-box;text-align:center;z-index:100001;font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;animation:acmExitFadeIn .2s ease}
+  #acm-exit-toast .exit-line-top{font-size:1.35rem;font-weight:800;letter-spacing:.02em;color:#ffffff;line-height:1.3}
+  #acm-exit-toast .exit-line-sub{font-size:1rem;font-weight:500;color:#d1d5db;line-height:1.45;max-width:340px}
+  #acm-exit-toast .exit-reopen-btn{margin-top:20px;border:1px solid #374151;background:#111827;color:#e5e7eb;padding:8px 16px;border-radius:8px;font-size:.82rem;font-weight:600;cursor:pointer;transition:background .15s ease}
+  #acm-exit-toast .exit-reopen-btn:hover{background:#1f2937}
   @media print{
     @page{size:A4 portrait;margin:8mm 9mm}
     body,html{margin:0;padding:0;background:#fff!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
     #acm-root{background:#fff!important;min-height:0!important}
-    #acm-root .topbar,#acm-root .doc-toolbar,#acm-modal-overlay,#acm-lightbox-overlay{display:none!important}
-    #acm-root .wrap{padding:0!important;margin:0!important;max-width:none!important}
-    #acm-root .doc-scroll,#acm-root .newdoc-scroll{padding:0!important;background:transparent!important;overflow:visible!important;max-height:none!important;border-radius:0!important}
-    #acm-root .doc-page{box-shadow:none!important;margin:0!important;padding:0!important;page-break-after:avoid}
-    #acm-root .newdoc-scale-wrap{width:100%!important;height:auto!important;margin:0!important}
-    #acm-root .newdoc-page{width:100%!important;min-height:0!important;box-shadow:none!important;margin:0!important;padding:0!important;transform:none!important;border-radius:0!important}
-    #acm-root .nd-sec,#acm-root .nd-photo-box{break-inside:avoid}
-    #acm-root .doc-page .doc-footer-code{position:fixed!important;bottom:5mm!important;right:10mm!important}
-  }
-</style>
-<script src="https://cdn.jsdelivr.net/npm/chart.js/dist/chart.umd.js" defer></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
-</head>
-<body>
-<div id="acm-root"></div>
-<script>
-(function () {
-  const ROOT = document.getElementById('acm-root');
-  const STORE_KEY = 'acm-records-v1';
-  const DELETE_QUEUE_KEY = 'acm-delete-queue-v1';
-  const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbypcK8NiSMvUzKLl1UyBm8Rhri_QC8GUWwaxRJOuxEgAjw68QP2MVIW_rTATMw31x1X/exec";
-
-  // IndexedDB Offline Storage Engine (preserves full Base64 photos & offline queues reliably)
-  const OfflineDB = (function () {
-    const DB_NAME = 'BHS_ACM_OfflineDB';
-    const DB_VERSION = 1;
-    let dbPromise = null;
-    function open() {
-      if (dbPromise) return dbPromise;
-      dbPromise = new Promise((resolve, reject) => {
-        try {
-          if (!window.indexedDB) return reject(new Error('IndexedDB unavailable'));
-          const req = indexedDB.open(DB_NAME, DB_VERSION);
-          req.onupgradeneeded = (e) => {
-            const db = e.target.result;
-            if (!db.objectStoreNames.contains('records')) db.createObjectStore('records', { keyPath: 'createdAt' });
-            if (!db.objectStoreNames.contains('meta')) db.createObjectStore('meta', { keyPath: 'key' });
+    #acm-root .topbar,#acm-root .doc-toolbar,#acm-modal-overlay,#acm-lightbox-overlay,#acm-update-banner,#acm-exit-overlay,#acm-exit-toast{display:none!important}
           };
           req.onsuccess = (e) => resolve(e.target.result);
           req.onerror = (e) => reject(e.target.error);
@@ -825,6 +825,7 @@
     showErrors: false,
     dashStart: null,
     dashEnd: null,
+    userChangedDateFilter: false,
     partsChartMode: 'parts',
     refImgExpanded: false,
     isOnline: typeof navigator !== 'undefined' ? navigator.onLine : true,
@@ -922,15 +923,25 @@
 
       const cbName = 'acmImgCb_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
       const reqUrl = `${WEB_APP_URL}?action=image&id=${encodeURIComponent(fileId)}&callback=${cbName}&t=${Date.now()}`;
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const fetchTimer = setTimeout(() => { if (controller) controller.abort(); }, 20000);
 
-      fetch(reqUrl, { method: 'GET', mode: 'cors', credentials: 'omit', redirect: 'follow', cache: 'no-store' })
-        .then(res => { if (!res.ok) throw new Error('HTTP_' + res.status); return res.text(); })
+      fetch(reqUrl, {
+        method: 'GET',
+        mode: 'cors',
+        credentials: 'omit',
+        redirect: 'follow',
+        cache: 'no-store',
+        signal: controller ? controller.signal : undefined
+      })
+        .then(res => { clearTimeout(fetchTimer); if (!res.ok) throw new Error('HTTP_' + res.status); return res.text(); })
         .then(text => {
           const res = parseCloudPayload(text, cbName);
           if (res && res.ok && res.dataUrl) { DRIVE_IMG_CACHE[fileId] = res.dataUrl; resolve(res.dataUrl); }
           else resolve('');
         })
         .catch(() => {
+          clearTimeout(fetchTimer);
           const script = document.createElement('script');
           script.crossOrigin = 'anonymous';
           const timer = setTimeout(() => { cleanup(); resolve(''); }, 15000);
@@ -996,7 +1007,6 @@
     if (!Array.isArray(googleData)) return;
     state.isOnline = true;
     state.cloudFetchError = null;
-    const cleanDate = iso => { if (!iso || typeof iso !== 'string' || !iso.includes('T')) return iso; const d = new Date(iso); if (isNaN(d)) return iso; return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
     const cleanTime = iso => (!iso || typeof iso !== 'string' || !iso.includes('T')) ? iso : new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
     const delSet = new Set((state.deleteQueue || []).map(d => String(d.createdAt)));
     const validData = [];
@@ -1004,13 +1014,18 @@
     googleData.forEach(g => {
       if (!g || !g.createdAt || String(g.createdAt).trim() === '') return;
       if (delSet.has(String(g.createdAt))) return;
-      g.happeningDate = cleanDate(g.happeningDate); g.actionDate = cleanDate(g.actionDate); g.spRequestDate = cleanDate(g.spRequestDate); g.spDeliveryDate = cleanDate(g.spDeliveryDate);
-      g.timeOfHappening = cleanTime(g.timeOfHappening); g.actStartTime = cleanTime(g.actStartTime); g.actEndTime = cleanTime(g.actEndTime);
+      g.happeningDate = normalizeDateStr(g.happeningDate);
+      g.actionDate = normalizeDateStr(g.actionDate);
+      g.spRequestDate = normalizeDateStr(g.spRequestDate);
+      g.spDeliveryDate = normalizeDateStr(g.spDeliveryDate);
+      g.timeOfHappening = cleanTime(g.timeOfHappening);
+      g.actStartTime = cleanTime(g.actStartTime);
+      g.actEndTime = cleanTime(g.actEndTime);
       g.isDraft = false;
       g.syncPending = false;
       g.showCleaningBox = Boolean(g.showCleaningBox || g.cleaningImage);
-      if (Array.isArray(g.monitoring)) g.monitoring.forEach(m => { m.d1 = cleanDate(m.d1); m.d2 = cleanDate(m.d2); });
-      if (Array.isArray(g.history)) g.history.forEach(h => { h.date = cleanDate(h.date); });
+      if (Array.isArray(g.monitoring)) g.monitoring.forEach(m => { m.d1 = normalizeDateStr(m.d1); m.d2 = normalizeDateStr(m.d2); });
+      if (Array.isArray(g.history)) g.history.forEach(h => { h.date = normalizeDateStr(h.date); });
       validData.push(g);
     });
 
@@ -1038,9 +1053,18 @@
     const validOrActive = state.records.filter(r => !r.isDraft || String(r.createdAt) === String(state.activeId));
     if (validOrActive.length > 0 && !state.activeId) state.activeId = validOrActive[0].createdAt;
 
-    // Update Dashboard in-place during background refresh without resetting filters or scroll position
+    // Update Dashboard in-place and auto-expand default date bounds unless the user manually filtered dates
     if (state.tab === 'dashboard') {
       if (document.getElementById('dash-kpi-grid')) {
+        if (!state.userChangedDateFilter) {
+          const { defStart, defEnd } = getDefaultDateBounds();
+          state.dashStart = defStart;
+          state.dashEnd = defEnd;
+          const sEl = document.getElementById('dash-start');
+          const eEl = document.getElementById('dash-end');
+          if (sEl) sEl.value = defStart;
+          if (eEl) eEl.value = defEnd;
+        }
         updateDashboardUI();
         updateNetworkBadge();
         return;
@@ -1263,7 +1287,20 @@
   }
 
   function revertActiveRecord() { if(state.cleanActiveRecord && state.activeId) { const idx = state.records.findIndex(x => String(x.createdAt) === String(state.activeId)); if (idx !== -1) { state.records[idx] = JSON.parse(JSON.stringify(state.cleanActiveRecord)); saveRecords(); } } state.isDirty = false; }
-  
+
+  async function wrapUnsaved() {
+    if (state.isDirty) {
+      const discard = await showModal(
+        "Unsaved Changes Detected",
+        "You have entered or modified data that has not been submitted yet.\n\nPlease click \"Submit ✔\" to record your data, or click \"Discard Data\" to abandon your recent changes.",
+        "unsaved"
+      );
+      if (!discard) return false;
+      revertActiveRecord();
+    }
+    return true;
+  }
+
   function getNextReportNo() {
     const prefix = `${String(new Date().getFullYear()).slice(-2)}${String(new Date().getMonth() + 1).padStart(2, '0')}-`;
     let max = 0;
@@ -1271,21 +1308,76 @@
     return prefix + String(max + 1).padStart(3, '0');
   }
 
-  function fmtDate(r) { if (r.happeningDate) { const p = String(r.happeningDate).substring(0, 10).split('-'); if (p.length === 3) return `${p[2]}/${p[1]}/${p[0].slice(-2)}`; } return (!r.dd && !r.mm && !r.yy) ? '—' : `${(r.dd||'--').padStart(2,'0')}/${(r.mm||'--').padStart(2,'0')}/${r.yy||'--'}`; }
-  function getTs(iso) { if (iso && typeof iso === 'string') { const p = iso.split('-'); if (p.length === 3) return new Date(parseInt(p[0], 10), parseInt(p[1], 10)-1, parseInt(p[2], 10)).getTime(); } return null; }
+  // Robust date normalization (handles YYYY-MM-DD, ISO timestamps, DD/MM/YYYY, and DD/MM/YY across mobile browsers)
+  function normalizeDateStr(val) {
+    if (!val) return '';
+    const s = String(val).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    if (s.includes('T')) {
+      const d = new Date(s);
+      if (!isNaN(d)) {
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      }
+    }
+    const slash = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+    if (slash) {
+      const yyyy = slash[3].length === 2 ? '20' + slash[3] : slash[3];
+      return `${yyyy}-${slash[2].padStart(2, '0')}-${slash[1].padStart(2, '0')}`;
+    }
+    const ymdPrefix = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (ymdPrefix) {
+      return `${ymdPrefix[1]}-${ymdPrefix[2].padStart(2, '0')}-${ymdPrefix[3].padStart(2, '0')}`;
+    }
+    return s;
+  }
+
+  function fmtDate(r) {
+    const norm = normalizeDateStr(r.happeningDate);
+    if (norm) {
+      const p = norm.substring(0, 10).split('-');
+      if (p.length === 3) return `${p[2]}/${p[1]}/${p[0].slice(-2)}`;
+    }
+    return (!r.dd && !r.mm && !r.yy) ? '—' : `${String(r.dd||'--').padStart(2,'0')}/${String(r.mm||'--').padStart(2,'0')}/${r.yy||'--'}`;
+  }
+
+  function getTs(iso) {
+    const norm = normalizeDateStr(iso);
+    if (norm) {
+      const p = norm.split('-');
+      if (p.length === 3) {
+        const ts = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, parseInt(p[2], 10)).getTime();
+        if (!isNaN(ts)) return ts;
+      }
+    }
+    return null;
+  }
+
   function getOldTs(dd, mm, yy) { return (!dd || !mm || !yy) ? null : new Date(parseInt(String(yy).length === 2 ? ('20' + yy) : yy, 10), parseInt(mm, 10)-1, parseInt(dd, 10)).getTime(); }
+
   function getExactTs(dateStr, oldDd, oldMm, oldYy, timeStr) {
     let t = getTs(dateStr) || getOldTs(oldDd, oldMm, oldYy);
     if (t && timeStr && typeof timeStr === 'string') { const parts = timeStr.split(':'); if (parts.length >= 2) t += ((parseInt(parts[0], 10) || 0) * 3600000) + ((parseInt(parts[1], 10) || 0) * 60000); }
     return t;
   }
 
-  // Normalize either ISO date or legacy DD/MM/YY fields into YYYY-MM-DD
+  // Compute dynamic Start/End bounds covering all loaded non-draft records (prevents stuck date filter)
+  function getDefaultDateBounds() {
+    const toIsoStr = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    let minTs = Date.now(), maxTs = Date.now();
+    state.records.filter(r => !r.isDraft).forEach(r => {
+      const t = getTs(r.happeningDate) || getOldTs(r.dd, r.mm, r.yy) || Number(r.createdAt);
+      if (t && !isNaN(t)) {
+        if (t < minTs) minTs = t;
+        if (t > maxTs) maxTs = t;
+      }
+    });
+    return { defStart: toIsoStr(new Date(minTs)), defEnd: toIsoStr(new Date(maxTs)) };
+  }
+
+  // Normalize either ISO date, slash date, or legacy DD/MM/YY fields into YYYY-MM-DD
   function toIsoDateStr(dateStr, oldDd, oldMm, oldYy) {
-    if (dateStr && typeof dateStr === 'string') {
-      const m = dateStr.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
-      if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-    }
+    const norm = normalizeDateStr(dateStr);
+    if (norm && /^\d{4}-\d{2}-\d{2}$/.test(norm)) return norm;
     if (checkReq(oldDd) && checkReq(oldMm) && checkReq(oldYy)) {
       const yStr = String(oldYy).trim();
       const yyyy = yStr.length === 2 ? ('20' + yStr) : yStr.padStart(4, '0');
@@ -1539,7 +1631,7 @@
     const lineQ = (document.getElementById('dash-line')?.value || '').toLowerCase(), convQ = (document.getElementById('dash-conveyor')?.value || '').toLowerCase();
     const startTs = sDate ? getTs(sDate) : 0, endTs = eDate ? (getTs(eDate) + 86400000) : Infinity;
     return state.records.filter(r => !r.isDraft).filter(r => {
-      const t = getTs(r.happeningDate) || getOldTs(r.dd, r.mm, r.yy);
+      const t = getTs(r.happeningDate) || getOldTs(r.dd, r.mm, r.yy) || Number(r.createdAt);
       if ((sDate || eDate) && (!t || t < startTs || t >= endTs)) return false;
       if (selUrg.length && !selUrg.includes(r.urgency)) return false;
       if (selStat.length && !selStat.includes(getStatus(r))) return false;
@@ -2056,15 +2148,9 @@
   }
 
   function renderDashboard(container) {
-    const toIsoStr = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    const defStart = toIsoStr(thirtyDaysAgo), defEnd = toIsoStr(new Date());
-    
-    if (state.dashStart === null) state.dashStart = defStart;
-    if (state.dashEnd === null) state.dashEnd = defEnd;
+    const { defStart, defEnd } = getDefaultDateBounds();
+    if (!state.userChangedDateFilter || state.dashStart === null) state.dashStart = defStart;
+    if (!state.userChangedDateFilter || state.dashEnd === null) state.dashEnd = defEnd;
 
     let allLinesNos = [], allConveyors = new Set();
     for (let l in EQUIP_DB) for (let n in EQUIP_DB[l]) { allLinesNos.push(l + '-' + n); allConveyors.add(EQUIP_DB[l][n]); }
@@ -2149,16 +2235,18 @@
       const el = document.getElementById(id); 
       if(el) {
         el.addEventListener(id.includes('line')||id.includes('conveyor')?'input':'change', (e) => {
-          if (id === 'dash-start') state.dashStart = e.target.value;
-          if (id === 'dash-end') state.dashEnd = e.target.value;
+          if (id === 'dash-start') { state.dashStart = e.target.value; state.userChangedDateFilter = true; }
+          if (id === 'dash-end') { state.dashEnd = e.target.value; state.userChangedDateFilter = true; }
           updateDashboardUI();
         });
       }
     });
     
     document.getElementById('dash-reset-btn').addEventListener('click', () => {
-      state.dashStart = defStart; state.dashEnd = defEnd;
-      document.getElementById('dash-start').value = defStart; document.getElementById('dash-end').value = defEnd;
+      const freshBounds = getDefaultDateBounds();
+      state.userChangedDateFilter = false;
+      state.dashStart = freshBounds.defStart; state.dashEnd = freshBounds.defEnd;
+      document.getElementById('dash-start').value = freshBounds.defStart; document.getElementById('dash-end').value = freshBounds.defEnd;
       document.querySelectorAll('input[name="dash-urgency"], input[name="dash-cat"], input[name="dash-status"]').forEach(cb => cb.checked = false);
       const s1 = document.querySelector('#dd-urgency-wrapper .dd-btn'), s2 = document.querySelector('#dd-status-wrapper .dd-btn'), s3 = document.querySelector('#dd-cat-wrapper .dd-btn');
       if(s1) s1.innerHTML = 'All'; if(s2) s2.innerHTML = 'All'; if(s3) s3.innerHTML = 'All';
@@ -3456,20 +3544,460 @@
     if (document.visibilityState === 'visible') runBackgroundRefresh();
   });
 
+  // ==================== EXIT & BACK-BUTTON PROTECTION (PPM Reference Style) ====================
+  const exitGuard = {
+    depth: 0,
+    maxDepth: 3,
+    lastArmTs: 0,
+    modalOpen: false,
+    allowExit: false,
+    closing: false,
+    exitingNow: false
+  };
+
+  function hideExitToast() {
+    document.getElementById('acm-exit-toast')?.remove();
+  }
+
+  function showClosedFallbackScreen() {
+    hideExitToast();
+    const toast = document.createElement('div');
+    toast.id = 'acm-exit-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'assertive');
+
+    const topEl = document.createElement('div');
+    topEl.className = 'exit-line-top';
+    topEl.textContent = 'App Closed Safely';
+
+    const subEl = document.createElement('div');
+    subEl.className = 'exit-line-sub';
+    subEl.textContent = 'Your browser restricts auto-closing. Press Back, swipe up, or close this tab.';
+
+    const reopenBtn = document.createElement('button');
+    reopenBtn.type = 'button';
+    reopenBtn.className = 'exit-reopen-btn';
+    reopenBtn.textContent = 'Reopen App';
+    reopenBtn.onclick = () => {
+      exitGuard.closing = false;
+      exitGuard.exitingNow = false;
+      exitGuard.allowExit = false;
+      hideExitToast();
+      armExitGuard(true);
+    };
+
+    toast.appendChild(topEl);
+    toast.appendChild(subEl);
+    toast.appendChild(reopenBtn);
+    document.body.appendChild(toast);
+  }
+
+  function armExitGuard(isUserGesture = false) {
+    if (!window.history || typeof window.history.pushState !== 'function') return;
+    if (exitGuard.closing) return;
+    if (isUserGesture && exitGuard.allowExit) {
+      exitGuard.allowExit = false;
+      hideExitToast();
+    }
+    if (exitGuard.allowExit) return;
+
+    const now = Date.now();
+    try {
+      if (!isUserGesture) {
+        if (exitGuard.depth === 0) {
+          history.replaceState({ acmGuard: 'base', depth: 0 }, '', window.location.href);
+          history.pushState({ acmGuard: 'trap', depth: 1 }, '', window.location.href);
+          exitGuard.depth = 1;
+          exitGuard.lastArmTs = now;
+        }
+        return;
+      }
+      // Maintain up to 3 user-activated guard states so rapid accidental Back taps on mobile are intercepted cleanly
+      if (exitGuard.depth < exitGuard.maxDepth && (exitGuard.depth < 1 || (now - exitGuard.lastArmTs) > 300)) {
+        exitGuard.depth += 1;
+        history.pushState({ acmGuard: 'trap', depth: exitGuard.depth }, '', window.location.href);
+        exitGuard.lastArmTs = now;
+      }
+    } catch (_) {}
+  }
+
+  function closeExitModal(rearm = true) {
+    const overlay = document.getElementById('acm-exit-overlay');
+    if (overlay) overlay.classList.remove('active');
+    exitGuard.modalOpen = false;
+    if (rearm) armExitGuard(true);
+  }
+
+  function openExitModal() {
+    let overlay = document.getElementById('acm-exit-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = 'acm-exit-overlay';
+      overlay.setAttribute('role', 'dialog');
+      overlay.setAttribute('aria-modal', 'true');
+      overlay.innerHTML = `
+        <div id="acm-exit-box">
+          <div id="acm-exit-badge"></div>
+          <div id="acm-exit-title"></div>
+          <div id="acm-exit-msg"></div>
+          <div id="acm-exit-hint"></div>
+          <div id="acm-exit-actions">
+            <button type="button" id="acm-exit-leave">Exit App</button>
+            <button type="button" id="acm-exit-stay">Stay in App</button>
+          </div>
+        </div>`;
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeExitModal(true);
+      });
+      document.body.appendChild(overlay);
+    }
+
+    const box = overlay.querySelector('#acm-exit-box');
+    const badge = overlay.querySelector('#acm-exit-badge');
+    const titleEl = overlay.querySelector('#acm-exit-title');
+    const msgEl = overlay.querySelector('#acm-exit-msg');
+    const hintEl = overlay.querySelector('#acm-exit-hint');
+    const stayBtn = overlay.querySelector('#acm-exit-stay');
+    const leaveBtn = overlay.querySelector('#acm-exit-leave');
+
+    const activeRec = getActive();
+    const inMemoDetails = state.tab === 'input';
+    const hasUnsavedWork = Boolean(state.isDirty || (inMemoDetails && activeRec && activeRec.isDraft));
+    const pendingUploads = getPendingCount();
+
+    hintEl.classList.remove('visible');
+    hintEl.textContent = '';
+
+    if (state.isSyncing) {
+      badge.className = 'warn';
+      badge.textContent = '⏳ Cloud Sync In Progress';
+      titleEl.textContent = 'Wait Before Exiting?';
+      msgEl.innerHTML = 'Your ACM records are currently uploading to Google Sheets &amp; Drive. Leaving now may interrupt the sync.';
+      stayBtn.textContent = 'Stay & Finish Sync';
+      leaveBtn.textContent = 'Exit Anyway';
+    } else if (inMemoDetails && hasUnsavedWork) {
+      const repLabel = activeRec && activeRec.reportNo ? `BHS/ACM ${escHtml(activeRec.reportNo)}` : 'your current memo';
+      badge.className = 'warn';
+      badge.textContent = '⚠️ Unsaved Work in Memo Details';
+      titleEl.textContent = 'Finish Your Memo Before Exiting?';
+      msgEl.innerHTML = `You are currently working on <b>${repLabel}</b> in <b>Memo Details</b> and have not tapped <b>Submit ✔</b> yet.<br><br>Stay in the app to complete and submit your entry.`;
+      stayBtn.textContent = 'Stay & Continue Memo';
+      leaveBtn.textContent = 'Exit App';
+    } else if (inMemoDetails) {
+      badge.className = 'info';
+      badge.textContent = '📝 Memo Details Open';
+      titleEl.textContent = 'Exit BHS ACM Dashboard?';
+      msgEl.innerHTML = 'You are currently in the <b>Memo Details</b> tab. Tap <b>Stay &amp; Continue</b> to keep working, or <b>Exit App</b> if you meant to leave.';
+      stayBtn.textContent = 'Stay & Continue';
+      leaveBtn.textContent = 'Exit App';
+    } else if (pendingUploads > 0) {
+      badge.className = 'warn';
+      badge.textContent = `📡 ${pendingUploads} Record(s) Pending Sync`;
+      titleEl.textContent = 'Exit BHS ACM Dashboard?';
+      msgEl.innerHTML = `You still have <b>${pendingUploads}</b> offline record(s) waiting to sync to Google Sheets. Are you sure you want to exit?`;
+      stayBtn.textContent = 'Stay in App';
+      leaveBtn.textContent = 'Exit App';
+    } else {
+      badge.className = 'neutral';
+      badge.textContent = '🛡️ Accidental Exit Guard';
+      titleEl.textContent = 'Exit BHS ACM Dashboard?';
+      msgEl.innerHTML = 'You pressed the Back button. Do you want to stay in the dashboard or exit the app?';
+      stayBtn.textContent = 'Stay in App';
+      leaveBtn.textContent = 'Exit App';
+    }
+
+    stayBtn.onclick = () => closeExitModal(true);
+    leaveBtn.onclick = () => {
+      closeExitModal(false);
+      saveRecords();
+      exitGuard.allowExit = true;
+      exitGuard.closing = true;
+      exitGuard.exitingNow = true;
+
+      // 1. Directly display the closed-state fallback screen
+      showClosedFallbackScreen();
+
+      // 2. Unwind pushed guard trap entries cleanly back to base entry (depth 0)
+      const curDepth = (history.state && typeof history.state.depth === 'number') ? history.state.depth : exitGuard.depth;
+      if (curDepth > 0) {
+        try { history.go(-curDepth); } catch (_) {}
+      } else {
+        try { history.back(); } catch (_) {}
+      }
+      exitGuard.depth = 0;
+
+      // 3. Attempt direct app/window close where supported by the platform
+      try {
+        if (navigator.app && typeof navigator.app.exitApp === 'function') {
+          navigator.app.exitApp();
+        }
+      } catch (_) {}
+      try { window.close(); } catch (_) {}
+      setTimeout(() => {
+        try { window.open('', '_self'); window.close(); } catch (_) {}
+      }, 120);
+    };
+
+    exitGuard.modalOpen = true;
+    box.classList.remove('shake');
+    void overlay.offsetWidth;
+    overlay.classList.add('active');
+    setTimeout(() => stayBtn.focus(), 40);
+  }
+
+  ['pointerdown', 'keydown'].forEach((evtName) => {
+    document.addEventListener(evtName, (e) => {
+      if (e.target && e.target.closest && e.target.closest('#acm-exit-overlay')) return;
+      armExitGuard(true);
+    }, { passive: true, capture: true });
+  });
+
+  window.addEventListener('popstate', (e) => {
+    if (exitGuard.exitingNow) {
+      if (e.state && e.state.acmGuard) {
+        try { history.back(); } catch (_) {}
+      }
+      return;
+    }
+    if (exitGuard.allowExit) return;
+
+    const landedDepth = (e.state && typeof e.state.depth === 'number') ? e.state.depth : 0;
+    exitGuard.depth = landedDepth;
+
+    // Immediately re-anchor history synchronously so rapid back-button taps cannot force-exit
+    try {
+      exitGuard.depth = landedDepth + 1;
+      history.pushState({ acmGuard: 'trap', depth: exitGuard.depth }, '', window.location.href);
+    } catch (_) {}
+
+    // 1. Close enlarged photo lightbox first if open
+    const lb = document.getElementById('acm-lightbox-overlay');
+    if (lb && lb.classList.contains('active')) {
+      lb.classList.remove('active');
+      return;
+    }
+
+    // 2. Close timeline Full View modal if open
+    const fv = document.getElementById('full-view-overlay');
+    if (fv && fv.style.display === 'flex') {
+      fv.style.display = 'none';
+      return;
+    }
+
+    // 3. Close any open multi-select dropdown menu first
+    const openMenus = document.querySelectorAll('.dd-menu.open');
+    if (openMenus.length > 0) {
+      openMenus.forEach(m => m.classList.remove('open'));
+      return;
+    }
+
+    // 4. Do not interrupt another active confirmation/PIN modal
+    const activeModal = document.getElementById('acm-modal-overlay');
+    if (activeModal && activeModal.classList.contains('active')) {
+      return;
+    }
+
+    // 5. If Exit Confirmation is already visible, swallow repeated accidental Back taps
+    if (exitGuard.modalOpen) {
+      const box = document.getElementById('acm-exit-box');
+      const hint = document.getElementById('acm-exit-hint');
+      if (hint) {
+        hint.textContent = 'Back button locked — tap "Stay" to keep working, or tap "Exit App" to leave.';
+        hint.classList.add('visible');
+      }
+      if (box) {
+        box.classList.remove('shake');
+        void box.offsetWidth;
+        box.classList.add('shake');
+      }
+      return;
+    }
+
+    // 6. Show Exit Confirmation Notification
+    openExitModal();
+  });
+
+  window.addEventListener('beforeunload', (e) => {
+    if (exitGuard.allowExit) return;
+    const activeRec = getActive();
+    const workingInMemo = state.tab === 'input' && (state.isDirty || (activeRec && activeRec.isDraft));
+    if (workingInMemo || state.isSyncing) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  window._acmAllowExitForReload = function () {
+    exitGuard.allowExit = true;
+  };
+
+  window._acmCanApplyUpdate = async function () {
+    if (state.isSyncing) {
+      await showModal("Sync in Progress", "Please wait a moment for your offline records to finish syncing before updating.", "alert");
+      return false;
+    }
+    if (state.tab === 'input' && state.isDirty) {
+      return await wrapUnsaved();
+    }
+    exitGuard.allowExit = true;
+    return true;
+  };
+
+  armExitGuard(false);
   render();
   loadRecords();
 })();
 </script>
 <script>
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      if (window.location.protocol !== 'blob:' && window.location.protocol !== 'data:') {
-        navigator.serviceWorker.register('./sw.js').catch(err => {
-          console.warn('ServiceWorker registration skipped or failed: ', err);
-        });
+(function initAppUpdater() {
+  // Bump APP_VERSION to match version.json and CACHE_NAME in sw.js on every release
+  const APP_VERSION = '1.0.0';
+  let waitingWorker = null;
+  let swRegistration = null;
+  let reloading = false;
+  let dismissedVersion = null;
+  let latestMeta = { version: '', notes: '' };
+
+  function showUpdateBanner(newVersion, notes) {
+    const versionKey = newVersion || latestMeta.version || 'sw-waiting';
+    if (newVersion) latestMeta.version = newVersion;
+    if (notes) latestMeta.notes = notes;
+    if (dismissedVersion && dismissedVersion === versionKey) return;
+
+    let banner = document.getElementById('acm-update-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'acm-update-banner';
+      banner.setAttribute('role', 'status');
+      banner.setAttribute('aria-live', 'polite');
+      document.body.appendChild(banner);
+    }
+
+    const verLabel = latestMeta.version ? ` (v${latestMeta.version})` : '';
+    const noteText = latestMeta.notes || 'A newer version of the BHS ACM dashboard is ready.';
+    banner.innerHTML = `
+      <div style="flex:1;min-width:200px">
+        <div class="upd-title"></div>
+        <div class="upd-notes"></div>
+      </div>
+      <div class="upd-actions">
+        <button type="button" class="upd-btn-later" id="acm-upd-later">Later</button>
+        <button type="button" class="upd-btn-now" id="acm-upd-now">Update Now</button>
+      </div>
+    `;
+    banner.querySelector('.upd-title').textContent = `Update Available${verLabel}`;
+    banner.querySelector('.upd-notes').textContent = noteText;
+
+    banner.querySelector('#acm-upd-later').onclick = () => {
+      dismissedVersion = latestMeta.version || 'sw-waiting';
+      banner.remove();
+    };
+
+    banner.querySelector('#acm-upd-now').onclick = async () => {
+      if (typeof window._acmCanApplyUpdate === 'function') {
+        const ok = await window._acmCanApplyUpdate();
+        if (!ok) return;
       }
+      const btn = banner.querySelector('#acm-upd-now');
+      btn.textContent = 'Updating...';
+      btn.disabled = true;
+
+      const forceReload = async () => {
+        if (reloading) return;
+        reloading = true;
+        if (typeof window._acmAllowExitForReload === 'function') window._acmAllowExitForReload();
+        try {
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.filter(k => k.startsWith('bhs-acm-')).map(k => caches.delete(k)));
+          }
+        } catch (_) {}
+        window.location.reload();
+      };
+
+      const targetWorker = waitingWorker || (swRegistration && swRegistration.waiting);
+      if (targetWorker) {
+        targetWorker.postMessage({ type: 'SKIP_WAITING' });
+        // Safety fallback for iOS WebKit if controllerchange is delayed
+        setTimeout(forceReload, 2500);
+      } else {
+        if (swRegistration) {
+          try { await swRegistration.update(); } catch (_) {}
+        }
+        await forceReload();
+      }
+    };
+  }
+
+  async function checkVersionJson() {
+    if (!navigator.onLine) return;
+    try {
+      const res = await fetch(`./version.json?t=${Date.now()}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && data.version && String(data.version).trim() !== APP_VERSION) {
+        if (swRegistration) swRegistration.update().catch(() => {});
+        showUpdateBanner(String(data.version).trim(), data.notes ? String(data.notes) : '');
+      }
+    } catch (_) {}
+  }
+
+  function monitorRegistration(reg) {
+    swRegistration = reg;
+    if (reg.waiting) {
+      waitingWorker = reg.waiting;
+      checkVersionJson();
+      showUpdateBanner('', 'New enhancements are ready. Tap Update Now to refresh.');
+    }
+    reg.addEventListener('updatefound', () => {
+      const installing = reg.installing;
+      if (!installing) return;
+      installing.addEventListener('statechange', () => {
+        if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+          waitingWorker = installing;
+          checkVersionJson();
+          showUpdateBanner('', 'New enhancements are ready. Tap Update Now to refresh.');
+        }
+      });
     });
   }
+
+  if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (reloading) return;
+      reloading = true;
+      if (typeof window._acmAllowExitForReload === 'function') window._acmAllowExitForReload();
+      window.location.reload();
+    });
+
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+        .then((reg) => {
+          monitorRegistration(reg);
+          checkVersionJson();
+        })
+        .catch(() => {
+          checkVersionJson();
+        });
+    });
+
+    // Check for updates whenever the user returns to the installed app
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        if (swRegistration) swRegistration.update().catch(() => {});
+        checkVersionJson();
+      }
+    });
+
+    // Periodic check every 15 minutes while app stays open
+    setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        if (swRegistration) swRegistration.update().catch(() => {});
+        checkVersionJson();
+      }
+    }, 15 * 60 * 1000);
+  }
+})();
 </script>
 </body>
 </html>
