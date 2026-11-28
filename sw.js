@@ -18,7 +18,7 @@
  */
 
 // Bump CACHE_VERSION alongside APP_VERSION in index.html and version.json on every release
-const CACHE_VERSION = '1.0.0';
+const CACHE_VERSION = '1.0.1';
 const CACHE_NAME = `bhs-acm-v${CACHE_VERSION}`;
 const RUNTIME_CACHE = `bhs-acm-cdn-v${CACHE_VERSION}`;
 

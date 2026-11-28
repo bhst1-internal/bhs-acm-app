@@ -1,5 +1,5 @@
 {
-"version": "1.0.0",
+"version": "1.0.1",
 "releasedAt": "2026-11-28",
-"notes": "Offline mode with cloud sync, New Memo View with Reference Images, mobile Chrome fixes, and Exit Guard."
+"notes": "Memo View optimisation."
 }
